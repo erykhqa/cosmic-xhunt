@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firewall Bypass</title>
+  <!-- Load Google Font 'Press Start 2P' & 'VT323' for authentic 8-bit terminal typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================================================
+       CSS VARIABLES & RETRO 8-BIT THEME PALETTE
+       ========================================================================== */
+    :root {
+      --bg-void: #05080a;
+      --bg-panel: #0a1118;
+      --bg-screen: #070d12;
+      --neon-green: #39ff14;
+      --neon-green-dim: #197508;
+      --neon-cyan: #00f3ff;
+      --neon-cyan-dim: #006b73;
+      --neon-amber: #ffb000;
+      --neon-amber-dim: #7a5400;
+      --neon-red: #ff2a55;
+      --neon-red-dim: #7a0e24;
+      --text-main: #d8f8e8;
+      --pixel-border: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background-color: var(--bg-void);
+      color: var(--neon-green);
+      font-family: 'Press Start 2P', monospace;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ==========================================================================
+       CRT MONITOR SCANLINE & FLICKER EFFECTS
+       ========================================================================== */
+    .crt-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      background: 
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.85);
+    }
+
+    @keyframes textGlow {
+      0%, 100% { text-shadow: 0 0 6px rgba(57, 255, 20, 0.7), 0 0 14px rgba(57, 255, 20, 0.3); }
+      50% { text-shadow: 0 0 8px rgba(57, 255, 20, 0.9), 0 0 20px rgba(57, 255, 20, 0.5); }
+    }
+
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-6px, 4px); }
+      40% { transform: translate(6px, -4px); }
+      60% { transform: translate(-4px, -3px); }
+      80% { transform: translate(4px, 3px); }
+    }
+
+    .shake-effect {
+      animation: screenShake 0.35s ease-in-out;
+    }
+
+    /* ==========================================================================
+       MAIN TERMINAL CHASSIS (RESPONSIVE FOR LAPTOPS & DESKTOPS)
+       ========================================================================== */
+    .terminal-wrapper {
+      width: calc(100vw - 16px);
+      max-width: 1200px;
+      height: calc(100vh - 16px);
+      height: calc(100dvh - 16px);
+      background: var(--bg-panel);
+      border: 4px solid var(--neon-green);
+      box-shadow: 
+        0 0 0 4px var(--bg-void),
+        0 0 0 8px var(--neon-green-dim),
+        0 0 30px rgba(57, 255, 20, 0.25);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top System Bar */
+    .terminal-header {
+      background: #0d1924;
+      border-bottom: 3px solid var(--neon-green);
+      padding: clamp(6px, 1vh, 10px) 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .sys-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: clamp(0.65rem, 1.2vw, 0.9rem);
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--neon-green);
+      box-shadow: 0 0 8px var(--neon-green);
+      display: inline-block;
+      animation: blink 1.2s infinite;
+    }
+
+    /* 8-Bit Retro Buttons */
+    .btn-8bit {
+      font-family: 'Press Start 2P', monospace;
+      background: var(--bg-screen);
+      color: var(--neon-green);
+      border: 3px solid var(--neon-green);
+      padding: 10px 16px;
+      font-size: clamp(0.65rem, 1vw, 0.85rem);
+      cursor: pointer;
+      position: relative;
+      box-shadow: 4px 4px 0px var(--neon-green-dim);
+      transition: transform 0.06s, box-shadow 0.06s, background-color 0.1s;
+      text-transform: uppercase;
+    }
+
+    .btn-8bit:hover {
+      background: rgba(57, 255, 20, 0.15);
+      box-shadow: 4px 4px 0px var(--neon-green);
+    }
+
+    .btn-8bit:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0px var(--neon-green-dim);
+    }
+
+    .btn-cyan {
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      box-shadow: 4px 4px 0px var(--neon-cyan-dim);
+    }
+
+    .btn-cyan:hover {
+      background: rgba(0, 243, 255, 0.15);
+      box-shadow: 4px 4px 0px var(--neon-cyan);
+    }
+
+    .btn-amber {
+      color: var(--neon-amber);
+      border-color: var(--neon-amber);
+      box-shadow: 4px 4px 0px var(--neon-amber-dim);
+    }
+
+    .btn-amber:hover {
+      background: rgba(255, 176, 0, 0.15);
+      box-shadow: 4px 4px 0px var(--neon-amber);
+    }
+
+    .btn-small {
+      padding: 6px 10px;
+      font-size: 0.65rem;
+    }
+
+    /* ==========================================================================
+       SCREEN VIEWS (START, GAMEPLAY, END)
+       ========================================================================== */
+    .screen {
+      flex: 1;
+      min-height: 0;
+      display: none;
+      flex-direction: column;
+      padding: clamp(8px, 1.6vh, 16px);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* --- 1. START SCREEN --- */
+    #start-screen {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: clamp(10px, 1.8vh, 18px);
+      background: radial-gradient(circle at center, #0e1c26 0%, #060b10 100%);
+    }
+
+    .ascii-banner {
+      color: var(--neon-green);
+      font-size: clamp(1.1rem, 2.8vh, 2.3rem);
+      line-height: 1.25;
+      animation: textGlow 2.5s infinite;
+      margin: 0;
+      letter-spacing: 2px;
+    }
+
+    .subtitle-tag {
+      color: var(--neon-amber);
+      font-size: clamp(0.55rem, 1vh, 0.8rem);
+      background: rgba(255, 176, 0, 0.12);
+      border: 2px solid var(--neon-amber);
+      padding: 5px 12px;
+    }
+
+    .briefing-box {
+      max-width: 720px;
+      width: 100%;
+      background: var(--bg-screen);
+      border: 3px solid var(--neon-cyan);
+      padding: clamp(10px, 1.6vh, 16px) clamp(14px, 2vw, 20px);
+      text-align: left;
+      box-shadow: 5px 5px 0 var(--neon-cyan-dim);
+    }
+
+    .briefing-title {
+      color: var(--neon-cyan);
+      font-size: clamp(0.65rem, 1.1vh, 0.85rem);
+      margin-top: 0;
+      margin-bottom: clamp(6px, 1vh, 12px);
+      border-bottom: 2px dashed var(--neon-cyan-dim);
+      padding-bottom: 6px;
+    }
+
+    .briefing-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-family: 'VT323', monospace;
+      font-size: clamp(1rem, 2vh, 1.35rem);
+      line-height: 1.3;
+      color: var(--text-main);
+    }
+
+    .briefing-list li {
+      margin-bottom: clamp(4px, 0.8vh, 8px);
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .briefing-list li::before {
+      content: ">";
+      position: absolute;
+      left: 0;
+      color: var(--neon-green);
+      font-weight: bold;
+    }
+
+    .highlight-green { color: var(--neon-green); }
+    .highlight-cyan { color: var(--neon-cyan); }
+    .highlight-amber { color: var(--neon-amber); }
+
+    .start-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 2px;
+    }
+
+    .btn-launch {
+      font-size: clamp(0.75rem, 1.3vh, 1.1rem);
+      padding: clamp(10px, 1.4vh, 15px) clamp(18px, 2.2vw, 26px);
+      border-width: 3px;
+    }
+
+    /* --- 2. GAMEPLAY SCREEN --- */
+    #game-screen {
+      padding: clamp(8px, 1.2vh, 14px) clamp(10px, 1.4vw, 16px);
+      gap: clamp(8px, 1.2vh, 12px);
+      justify-content: space-between;
+    }
+
+    /* HUD Bar */
+    .hud-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      background: var(--bg-screen);
+      border: 3px solid var(--neon-green-dim);
+      padding: clamp(6px, 0.9vh, 10px) 12px;
+      flex-shrink: 0;
+    }
+
+    .hud-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .hud-label {
+      font-size: clamp(0.48rem, 0.8vh, 0.58rem);
+      color: #7ea394;
+    }
+
+    .hud-value {
+      font-size: clamp(0.65rem, 1.1vw, 0.95rem);
+      color: var(--neon-green);
+    }
+
+    .hud-value.timer-warn {
+      color: var(--neon-red);
+      animation: blink 0.6s infinite;
+    }
+
+    /* Main Play Area: Canvas Left + Controls/Telemetry Right */
+    .play-layout {
+      flex: 1;
+      display: flex;
+      gap: clamp(10px, 1.4vw, 16px);
+      align-items: stretch;
+      justify-content: center;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .canvas-container {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #040709;
+      border: 3px solid var(--neon-cyan);
+      box-shadow: inset 0 0 25px rgba(0, 243, 255, 0.15);
+      padding: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas#maze-canvas {
+      display: block;
+      image-rendering: pixelated;
+      background: #050a0e;
+    }
+
+    /* Right Side Control & Legend Deck */
+    .side-deck {
+      width: clamp(210px, 23vw, 250px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: clamp(6px, 1vh, 10px);
+      height: 100%;
+      min-height: 0;
+      flex-shrink: 0;
+    }
+
+    .panel-card {
+      background: var(--bg-screen);
+      border: 3px solid var(--neon-green-dim);
+      padding: clamp(6px, 1vh, 10px);
+      min-height: 0;
+    }
+
+    .panel-card h3 {
+      margin: 0 0 clamp(4px, 0.8vh, 8px) 0;
+      font-size: clamp(0.55rem, 0.85vh, 0.68rem);
+      color: var(--neon-amber);
+      border-bottom: 2px solid var(--neon-amber-dim);
+      padding-bottom: 4px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.95rem, 1.6vh, 1.15rem);
+      color: var(--text-main);
+      margin-bottom: 3px;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      border: 2px solid #fff;
+      flex-shrink: 0;
+    }
+
+    /* On-Screen D-Pad */
+    .dpad-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, clamp(38px, 5.2vh, 48px));
+      grid-template-rows: repeat(3, clamp(34px, 4.6vh, 44px));
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .dpad-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.8rem;
+      background: #0e1a24;
+      color: var(--neon-cyan);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 2px 2px 0 var(--neon-cyan-dim);
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+    }
+
+    .dpad-btn:active, .dpad-btn.pressed {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--neon-cyan-dim);
+      background: rgba(0, 243, 255, 0.25);
+    }
+
+    .dpad-center {
+      background: #070d12;
+      border: 2px dashed var(--neon-green-dim);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.45rem;
+      color: var(--neon-green-dim);
+    }
+
+    .log-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .log-feed {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.9rem, 1.5vh, 1.05rem);
+      color: var(--neon-green);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      line-height: 1.15;
+    }
+
+    /* ==========================================================================
+       FIREWALL CHECKPOINT MODAL (QUIZ OVERLAY)
+       ========================================================================== */
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 6, 9, 0.92);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 50;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .quiz-modal {
+      width: 100%;
+      max-width: 720px;
+      background: var(--bg-panel);
+      border: 4px solid var(--neon-amber);
+      box-shadow: 0 0 0 4px var(--bg-void), 0 0 35px rgba(255, 176, 0, 0.35);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid var(--neon-amber-dim);
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .quiz-badge {
+      color: var(--neon-amber);
+      font-size: 0.8rem;
+    }
+
+    .quiz-progress {
+      color: var(--neon-cyan);
+      font-size: 0.72rem;
+    }
+
+    .quiz-question-text {
+      font-family: 'VT323', monospace;
+      font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+      color: #ffffff;
+      line-height: 1.35;
+      background: var(--bg-screen);
+      border: 2px solid var(--neon-cyan-dim);
+      padding: 14px;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option-btn {
+      font-family: 'VT323', monospace;
+      font-size: clamp(1.2rem, 1.8vw, 1.45rem);
+      text-align: left;
+      background: #0c1620;
+      color: var(--text-main);
+      border: 3px solid var(--neon-green-dim);
+      padding: 10px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.08s;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.12);
+      transform: translateX(4px);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+    }
+
+    .option-prefix {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.75rem;
+      color: var(--neon-cyan);
+    }
+
+    /* Feedback Banner inside Quiz */
+    .feedback-banner {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+      padding: 10px;
+      text-align: center;
+      border: 3px solid transparent;
+    }
+
+    .feedback-granted {
+      background: rgba(57, 255, 20, 0.18);
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      text-shadow: 0 0 8px var(--neon-green);
+    }
+
+    .feedback-anomaly {
+      background: rgba(255, 42, 85, 0.2);
+      border-color: var(--neon-red);
+      color: var(--neon-red);
+      text-shadow: 0 0 8px var(--neon-red);
+    }
+
+    /* ==========================================================================
+       3. END / FINAL SCORE SCREEN
+       ========================================================================== */
+    #end-screen {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      gap: clamp(10px, 1.8vh, 18px);
+    }
+
+    .end-title {
+      font-size: clamp(1.1rem, 2.3vh, 1.9rem);
+      margin: 0;
+    }
+
+    .score-card {
+      width: 100%;
+      max-width: 620px;
+      background: var(--bg-screen);
+      border: 4px solid var(--neon-green);
+      box-shadow: 6px 6px 0 var(--neon-green-dim);
+      padding: clamp(12px, 2vh, 20px);
+    }
+
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: clamp(6px, 1vh, 10px) 0;
+      border-bottom: 2px dashed #1c332a;
+      font-size: clamp(0.6rem, 1.1vw, 0.85rem);
+    }
+
+    .score-row:last-child {
+      border-bottom: none;
+    }
+
+    .score-total-row {
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 3px solid var(--neon-amber);
+      color: var(--neon-amber);
+      font-size: clamp(0.8rem, 1.4vw, 1.15rem);
+    }
+
+    /* Responsive adjustments for narrower screens while staying 100% fit-to-screen */
+    @media (max-width: 780px) {
+      .play-layout {
+        flex-direction: column;
+      }
+      .side-deck {
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        align-items: stretch;
+      }
+      .panel-card {
+        flex: 1;
+      }
+      .log-card {
+        display: none;
+      }
+      .hud-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CRT Scanline Filter -->
+  <div class="crt-overlay"></div>
+
+  <!-- Main Arcade Terminal Container -->
+  <div class="terminal-wrapper" id="terminal-box">
+
+    <!-- Persistent Top Header -->
+    <header class="terminal-header">
+      <div class="sys-brand">
+        <span class="status-dot"></span>
+        <span>SYS://FIREWALL_BYPASS_v8.4</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button id="sound-toggle-btn" class="btn-8bit btn-cyan btn-small" title="Toggle 8-Bit Audio">
+          SFX: ON
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================================================================
+         SCREEN 1: START / MISSION BRIEFING
+         ====================================================================== -->
+    <section id="start-screen" class="screen active">
+      <div class="subtitle-tag">[ SECURE SHELL INTRUSION SIMULATION ]</div>
+      <h1 class="ascii-banner">FIREWALL<br>BYPASS</h1>
+
+      <div class="briefing-box">
+        <h2 class="briefing-title">// MISSION PARAMETERS &amp; CONTROLS</h2>
+        <ul class="briefing-list">
+          <li>Infiltrate <span class="highlight-cyan">3 Escalating Firewall Layers</span> before the <span class="highlight-amber">03:00 (180s)</span> global trace timer expires.</li>
+          <li>Navigate your <span class="highlight-green">DATA PACKET</span> from <span class="highlight-cyan">[IN]</span> (top-left) to the <span class="highlight-amber">[GATE]</span> (bottom-right) using <span class="highlight-green">ARROW KEYS</span>, <span class="highlight-green">WASD</span>, or the on-screen D-Pad.</li>
+          <li>At each Firewall Gate, decrypt <span class="highlight-amber">3 Security Checkpoint Questions</span> (9 total) to unlock the next subnet.</li>
+          <li><span class="highlight-green">SCORING:</span> +150 pts/Level Cleared &bull; +50 pts/Correct Answer &bull; +2 pts/Sec Remaining upon full breach.</li>
+        </ul>
+      </div>
+
+      <div class="start-actions">
+        <button id="start-btn" class="btn-8bit btn-launch">START MISSION</button>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         SCREEN 2: ACTIVE MAZE & HUD
+         ====================================================================== -->
+    <section id="game-screen" class="screen">
+      <!-- Top Telemetry HUD -->
+      <div class="hud-bar">
+        <div class="hud-item">
+          <span class="hud-label">SUBNET LAYER</span>
+          <span class="hud-value" id="hud-level">LVL 1: PORT SCAN</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">TRACE TIMER</span>
+          <span class="hud-value" id="hud-timer">03:00</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">DECRYPTED</span>
+          <span class="hud-value" id="hud-quiz">0 / 9</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">CURRENT SCORE</span>
+          <span class="hud-value" id="hud-score">0000</span>
+        </div>
+      </div>
+
+      <!-- Center Workspace -->
+      <div class="play-layout">
+        <!-- Maze Viewport -->
+        <div class="canvas-container" id="canvas-container">
+          <canvas id="maze-canvas"></canvas>
+        </div>
+
+        <!-- Side Control & Telemetry Panel -->
+        <aside class="side-deck">
+          <div class="panel-card">
+            <h3>NODE LEGEND</h3>
+            <div class="legend-row">
+              <span class="legend-swatch" style="background:#39ff14; box-shadow:0 0 6px #39ff14;"></span>
+              <span>Packet (You)</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-swatch" style="background:#ffb000; box-shadow:0 0 6px #ffb000;"></span>
+              <span>Firewall Gate</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-swatch" style="background:#00f3ff;"></span>
+              <span>Packet Trail</span>
+            </div>
+            <div class="legend-row">
+              <span class="legend-swatch" style="background:#163847; border-color:#00f3ff;"></span>
+              <span>ICE Wall</span>
+            </div>
+          </div>
+
+          <!-- On-Screen Touch/Click D-Pad -->
+          <div class="panel-card dpad-wrapper">
+            <h3 style="width:100%;">MANUAL OVERRIDE</h3>
+            <div class="dpad-grid">
+              <div></div>
+              <button class="dpad-btn" id="btn-up" aria-label="Move Up">&#9650;</button>
+              <div></div>
+              <button class="dpad-btn" id="btn-left" aria-label="Move Left">&#9664;</button>
+              <div class="dpad-center">D-PAD</div>
+              <button class="dpad-btn" id="btn-right" aria-label="Move Right">&#9654;</button>
+              <div></div>
+              <button class="dpad-btn" id="btn-down" aria-label="Move Down">&#9660;</button>
+              <div></div>
+            </div>
+          </div>
+
+          <!-- Live Terminal Event Log -->
+          <div class="panel-card log-card">
+            <h3>SYS LOG</h3>
+            <div class="log-feed" id="sys-log">
+              <div>&gt; Awaiting uplink...</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         MODAL: FIREWALL CHECKPOINT QUESTIONS (3 PER GATE)
+         ====================================================================== -->
+    <div class="modal-backdrop" id="quiz-modal-backdrop">
+      <div class="quiz-modal">
+        <div class="quiz-header">
+          <span class="quiz-badge" id="quiz-gate-title">FIREWALL GATE // AUTHENTICATION</span>
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <span class="quiz-progress" id="quiz-timer" style="color: var(--neon-amber);">TRACE: 03:00</span>
+            <span class="quiz-progress" id="quiz-q-counter">QUERY 1 OF 3</span>
+          </div>
+        </div>
+
+        <div class="quiz-question-text" id="quiz-question">
+          Loading security challenge...
+        </div>
+
+        <div class="quiz-options" id="quiz-options">
+          <!-- Options populated dynamically -->
+        </div>
+
+        <div class="feedback-banner" id="quiz-feedback">
+          SELECT AN AUTHENTICATION KEY ABOVE
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         SCREEN 3: FINAL SCORE & MISSION DEBRIEF
+         ====================================================================== -->
+    <section id="end-screen" class="screen">
+      <div class="subtitle-tag" id="end-status-tag">[ CONNECTION TERMINATED ]</div>
+      <h1 class="end-title highlight-green" id="end-headline">SYSTEM BREACH COMPLETE</h1>
+
+      <div class="score-card">
+        <div class="score-row">
+          <span>SUBNETS CLEARED (<span id="final-levels-count">0</span>/3 &times; 150)</span>
+          <span class="highlight-cyan" id="final-levels-pts">0 PTS</span>
+        </div>
+        <div class="score-row">
+          <span>QUESTIONS CORRECT (<span id="final-quiz-count">0</span>/9 &times; 50)</span>
+          <span class="highlight-cyan" id="final-quiz-pts">0 PTS</span>
+        </div>
+        <div class="score-row">
+          <span>TIME REMAINING (<span id="final-time-sec">0</span>s &times; 2)</span>
+          <span class="highlight-cyan" id="final-time-pts">0 PTS</span>
+        </div>
+        <div class="score-row score-total-row">
+          <span>TOTAL HACKER SCORE</span>
+          <span id="final-total-score">0 PTS</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 8px;">
+        <button id="play-again-btn" class="btn-8bit btn-amber btn-launch">PLAY AGAIN</button>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /* ========================================================================
+       1. 8-BIT WEB AUDIO SYNTHESIZER (NO EXTERNAL FILES)
+       ======================================================================== */
+    class RetroAudio {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            this.ctx = new AudioCtx();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      toggle() {
+        this.enabled = !this.enabled;
+        if (this.enabled) {
+          this.init();
+          this.playTone(660, 'square', 0.08, 0.08);
+        }
+        return this.enabled;
+      }
+
+      playTone(freq, type = 'square', duration = 0.08, volume = 0.08, delay = 0) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + duration);
+      }
+
+      sfxStep() {
+        this.playTone(280, 'square', 0.04, 0.04);
+      }
+
+      sfxWallHit() {
+        this.playTone(110, 'sawtooth', 0.07, 0.06);
+      }
+
+      sfxGateReached() {
+        this.playTone(440, 'square', 0.09, 0.08, 0);
+        this.playTone(554, 'square', 0.09, 0.08, 0.09);
+        this.playTone(659, 'square', 0.14, 0.08, 0.18);
+      }
+
+      sfxAccessGranted() {
+        this.playTone(523.25, 'square', 0.08, 0.09, 0);
+        this.playTone(659.25, 'square', 0.08, 0.09, 0.08);
+        this.playTone(783.99, 'square', 0.08, 0.09, 0.16);
+        this.playTone(1046.5, 'square', 0.18, 0.09, 0.24);
+      }
+
+      sfxAnomaly() {
+        this.playTone(190, 'sawtooth', 0.14, 0.1, 0);
+        this.playTone(130, 'sawtooth', 0.22, 0.1, 0.14);
+      }
+
+      sfxLevelClear() {
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((n, idx) => {
+          this.playTone(n, 'square', 0.11, 0.09, idx * 0.09);
+        });
+      }
+
+      sfxGameOver(win) {
+        if (win) {
+          const fanfare = [523.25, 659.25, 783.99, 1046.5, 783.99, 1046.5];
+          fanfare.forEach((n, i) => this.playTone(n, 'square', 0.13, 0.09, i * 0.11));
+        } else {
+          const fail = [330, 293.66, 261.63, 196];
+          fail.forEach((n, i) => this.playTone(n, 'sawtooth', 0.18, 0.09, i * 0.16));
+        }
+      }
+    }
+
+    const audio = new RetroAudio();
+
+    /* ========================================================================
+       2. CYBERSECURITY QUESTION BANK (3 ESCALATING TIERS, 9 QUESTIONS TOTAL)
+       ======================================================================== */
+    const QUESTION_BANK = {
+      // Level 1: Port Scan (Foundational Networking & Security)
+      1: [
+        {
+          q: "Which network port is standard for secure, encrypted HTTPS web traffic?",
+          options: ["Port 21", "Port 80", "Port 443", "Port 3389"],
+          answer: 2
+        },
+        {
+          q: "What is the primary role of a network firewall?",
+          options: [
+            "Increase Wi-Fi antenna range",
+            "Monitor and filter incoming/outgoing traffic based on security rules",
+            "Defragment local hard drives",
+            "Encrypt monitor display signals"
+          ],
+          answer: 1
+        },
+        {
+          q: "Which protocol translates human-readable domain names (like example.com) into IP addresses?",
+          options: ["DNS", "FTP", "SMTP", "ARP"],
+          answer: 0
+        }
+      ],
+      // Level 2: Packet Filter (Intermediate Protocols, Attacks & Defenses)
+      2: [
+        {
+          q: "A 'SYN Flood' attack attempts to exhaust server resources by exploiting which protocol's handshake?",
+          options: ["UDP", "ICMP", "TCP", "DHCP"],
+          answer: 2
+        },
+        {
+          q: "Which secure protocol replaces Telnet to provide encrypted remote command-line administration on Port 22?",
+          options: ["SNMP", "SSH", "RDP", "POP3"],
+          answer: 1
+        },
+        {
+          q: "What type of vulnerability occurs when untrusted user input alters a database query's logic?",
+          options: [
+            "SQL Injection (SQLi)",
+            "ARP Spoofing",
+            "MAC Flooding",
+            "DNS Amplification"
+          ],
+          answer: 0
+        }
+      ],
+      // Level 3: Deep Inspection (Advanced Cryptography, AppSec & Threat Defense)
+      3: [
+        {
+          q: "Unlike a stateless packet filter, what does a 'Stateful Inspection' firewall track?",
+          options: [
+            "Only physical MAC addresses",
+            "The state and context of active network connections",
+            "CPU clock voltage fluctuations",
+            "Browser cookie expiration dates"
+          ],
+          answer: 1
+        },
+        {
+          q: "Which cryptographic property ensures that compromised long-term server keys cannot decrypt past captured TLS sessions?",
+          options: [
+            "Security Through Obscurity",
+            "Perfect Forward Secrecy (PFS)",
+            "MD5 Checksum Salting",
+            "Symmetric Key Reuse"
+          ],
+          answer: 1
+        },
+        {
+          q: "Which attack forces an authenticated user's browser to execute unwanted actions on a trusted web application?",
+          options: [
+            "Cross-Site Request Forgery (CSRF)",
+            "BGP Route Hijacking",
+            "SYN-ACK Reflection",
+            "Rainbow Table Collision"
+          ],
+          answer: 0
+        }
+      ]
+    };
+
+    /* ========================================================================
+       3. LEVEL CONFIGURATIONS
+       ======================================================================== */
+    const LEVELS = [
+      { level: 1, name: "LVL 1: PORT SCAN", size: 11 },
+      { level: 2, name: "LVL 2: PACKET FILTER", size: 15 },
+      { level: 3, name: "LVL 3: DEEP INSPECTION", size: 19 }
+    ];
+
+    /* ========================================================================
+       4. GAME STATE MANAGEMENT
+       ======================================================================== */
+    const state = {
+      status: 'START', // 'START' | 'PLAYING' | 'QUIZ' | 'END'
+      currentLevelIdx: 0,
+      timeRemaining: 180, // 3 minutes global timer
+      timerInterval: null,
+      levelsCleared: 0,
+      questionsCorrect: 0,
+      totalQuestionsAnswered: 0,
+      grid: [],
+      gridSize: 11,
+      player: { x: 1, y: 1 },
+      exit: { x: 9, y: 9 },
+      visited: new Set(),
+      quizQueue: [],
+      currentQuizIndex: 0,
+      quizLocked: false
+    };
+
+    /* ========================================================================
+       5. DOM ELEMENT REFERENCES
+       ======================================================================== */
+    const screens = {
+      start: document.getElementById('start-screen'),
+      game: document.getElementById('game-screen'),
+      end: document.getElementById('end-screen')
+    };
+
+    const canvas = document.getElementById('maze-canvas');
+    const ctx = canvas.getContext('2d');
+    const canvasContainer = document.getElementById('canvas-container');
+
+    const hudLevel = document.getElementById('hud-level');
+    const hudTimer = document.getElementById('hud-timer');
+    const hudQuiz = document.getElementById('hud-quiz');
+    const hudScore = document.getElementById('hud-score');
+    const sysLog = document.getElementById('sys-log');
+
+    const quizBackdrop = document.getElementById('quiz-modal-backdrop');
+    const quizGateTitle = document.getElementById('quiz-gate-title');
+    const quizTimerEl = document.getElementById('quiz-timer');
+    const quizQCounter = document.getElementById('quiz-q-counter');
+    const quizQuestionEl = document.getElementById('quiz-question');
+    const quizOptionsEl = document.getElementById('quiz-options');
+    const quizFeedbackEl = document.getElementById('quiz-feedback');
+
+    /* ========================================================================
+       6. PROCEDURAL MAZE GENERATOR (GUARANTEED VALID PATH)
+       Uses High-Branching Recursive Backtracker on an odd-dimension grid
+       0 = Open Path, 1 = Firewall ICE Wall
+       Start = (1, 1), Exit = (size - 2, size - 2)
+       ======================================================================== */
+    function generateMaze(size) {
+      // Initialize grid completely filled with walls (1)
+      const grid = Array.from({ length: size }, () => Array(size).fill(1));
+
+      function carve(cx, cy, lastDir = null) {
+        grid[cy][cx] = 0;
+
+        // 4 cardinal directions (step of 2 cells)
+        const dirs = [
+          [0, -2],
+          [2, 0],
+          [0, 2],
+          [-2, 0]
+        ];
+
+        // Shuffle directions
+        for (let i = dirs.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+        }
+
+        // Occasionally bias toward turning (70% chance to deprioritize straight line)
+        // to create more winding corridors, intersections, and deceptive dead ends
+        if (lastDir && Math.random() < 0.7) {
+          dirs.sort((a, b) => {
+            const aSame = a[0] === lastDir[0] && a[1] === lastDir[1];
+            const bSame = b[0] === lastDir[0] && b[1] === lastDir[1];
+            return aSame === bSame ? 0 : aSame ? 1 : -1;
+          });
+        }
+
+        for (const [dx, dy] of dirs) {
+          const nx = cx + dx;
+          const ny = cy + dy;
+          if (nx > 0 && nx < size - 1 && ny > 0 && ny < size - 1 && grid[ny][nx] === 1) {
+            // Knock down wall between current and neighbor
+            grid[cy + dy / 2][cx + dx / 2] = 0;
+            carve(nx, ny, [dx, dy]);
+          }
+        }
+      }
+
+      // Carve a strict spanning tree starting from (1, 1) with zero shortcut loops
+      // so every wrong turn requires true backtracking while guaranteeing a valid path.
+      carve(1, 1);
+
+      return grid;
+    }
+
+    /* ========================================================================
+       7. CANVAS SIZING & RETRO 8-BIT RENDERING
+       ======================================================================== */
+    function resizeCanvas() {
+      if (!canvasContainer || state.status === 'START') return;
+      const rect = canvasContainer.getBoundingClientRect();
+      const availW = rect.width - 14;
+      const availH = rect.height - 14;
+      const maxSquare = Math.max(120, Math.floor(Math.min(availW, availH)));
+
+      // Snap canvas size to exact multiple of gridSize for crisp pixel blocks
+      const cellSize = Math.max(8, Math.floor(maxSquare / state.gridSize));
+      const exactSize = cellSize * state.gridSize;
+
+      canvas.width = exactSize;
+      canvas.height = exactSize;
+      renderMaze();
+    }
+
+    function renderMaze() {
+      const size = state.gridSize;
+      const cell = canvas.width / size;
+
+      // Clear background
+      ctx.fillStyle = '#050a0e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw subtle grid lines
+      ctx.strokeStyle = '#0b1822';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= size; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * cell, 0);
+        ctx.lineTo(i * cell, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * cell);
+        ctx.lineTo(canvas.width, i * cell);
+        ctx.stroke();
+      }
+
+      // Render Walls & Visited Packet Trail
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const px = x * cell;
+          const py = y * cell;
+
+          if (state.grid[y][x] === 1) {
+            // 8-Bit Firewall ICE Block
+            ctx.fillStyle = '#0e2533';
+            ctx.fillRect(px + 1, py + 1, cell - 2, cell - 2);
+
+            // Inner pixel highlight bevel
+            ctx.strokeStyle = '#00a8b5';
+            ctx.lineWidth = Math.max(1, Math.floor(cell * 0.08));
+            ctx.strokeRect(px + 2, py + 2, cell - 4, cell - 4);
+
+            // Center circuit dot
+            ctx.fillStyle = '#18485e';
+            const dot = Math.max(2, Math.floor(cell * 0.22));
+            ctx.fillRect(px + (cell - dot) / 2, py + (cell - dot) / 2, dot, dot);
+          } else if (state.visited.has(`${x},${y}`)) {
+            // Breadcrumb Packet Trail
+            ctx.fillStyle = 'rgba(0, 243, 255, 0.14)';
+            ctx.fillRect(px + 3, py + 3, cell - 6, cell - 6);
+
+            ctx.fillStyle = '#00f3ff';
+            const pip = Math.max(2, Math.floor(cell * 0.18));
+            ctx.fillRect(px + (cell - pip) / 2, py + (cell - pip) / 2, pip, pip);
+          }
+        }
+      }
+
+      // Draw Start Node Marker [IN]
+      const sx = 1 * cell;
+      const sy = 1 * cell;
+      ctx.strokeStyle = 'rgba(57, 255, 20, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx + 3, sy + 3, cell - 6, cell - 6);
+
+      // Draw Firewall Exit Gate (Amber Portal)
+      const ex = state.exit.x * cell;
+      const ey = state.exit.y * cell;
+      ctx.fillStyle = 'rgba(255, 176, 0, 0.25)';
+      ctx.fillRect(ex + 2, ey + 2, cell - 4, cell - 4);
+
+      ctx.strokeStyle = '#ffb000';
+      ctx.lineWidth = Math.max(2, Math.floor(cell * 0.12));
+      ctx.strokeRect(ex + 3, ey + 3, cell - 6, cell - 6);
+
+      // Inner gate core
+      ctx.fillStyle = '#ffb000';
+      const core = Math.max(4, Math.floor(cell * 0.36));
+      ctx.fillRect(ex + (cell - core) / 2, ey + (cell - core) / 2, core, core);
+
+      // Draw Player Data Packet (Neon Green Sprite)
+      const plX = state.player.x * cell;
+      const plY = state.player.y * cell;
+      const pad = Math.max(3, Math.floor(cell * 0.16));
+
+      ctx.fillStyle = '#39ff14';
+      ctx.fillRect(plX + pad, plY + pad, cell - pad * 2, cell - pad * 2);
+
+      // Inner core highlight on player packet
+      ctx.fillStyle = '#ffffff';
+      const inner = Math.max(2, Math.floor(cell * 0.22));
+      ctx.fillRect(plX + (cell - inner) / 2, plY + (cell - inner) / 2, inner, inner);
+    }
+
+    /* ========================================================================
+       8. TELEMETRY LOGGING & HUD UPDATES
+       ======================================================================== */
+    function logEvent(msg, color = '#39ff14') {
+      const line = document.createElement('div');
+      line.style.color = color;
+      line.textContent = `> ${msg}`;
+      sysLog.appendChild(line);
+      while (sysLog.children.length > 4) {
+        sysLog.removeChild(sysLog.firstChild);
+      }
+    }
+
+    function calculateCurrentScore() {
+      const levelPts = state.levelsCleared * 150;
+      const quizPts = state.questionsCorrect * 50;
+      return levelPts + quizPts;
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateHUD() {
+      const lvlCfg = LEVELS[state.currentLevelIdx] || LEVELS[LEVELS.length - 1];
+      const formattedTime = formatTime(state.timeRemaining);
+      hudLevel.textContent = lvlCfg.name;
+      hudTimer.textContent = formattedTime;
+      if (quizTimerEl) {
+        quizTimerEl.textContent = `TRACE: ${formattedTime}`;
+      }
+
+      if (state.timeRemaining <= 30) {
+        hudTimer.classList.add('timer-warn');
+        if (quizTimerEl) quizTimerEl.style.color = 'var(--neon-red)';
+      } else {
+        hudTimer.classList.remove('timer-warn');
+        if (quizTimerEl) quizTimerEl.style.color = 'var(--neon-amber)';
+      }
+
+      hudQuiz.textContent = `${state.questionsCorrect} / 9`;
+      hudScore.textContent = String(calculateCurrentScore()).padStart(4, '0');
+    }
+
+    /* ========================================================================
+       9. LEVEL INITIALIZATION & MOVEMENT LOGIC
+       ======================================================================== */
+    function loadLevel(idx) {
+      state.currentLevelIdx = idx;
+      const cfg = LEVELS[idx];
+      state.gridSize = cfg.size;
+      state.grid = generateMaze(cfg.size);
+      state.player = { x: 1, y: 1 };
+      state.exit = { x: cfg.size - 2, y: cfg.size - 2 };
+      state.visited = new Set(['1,1']);
+      state.status = 'PLAYING';
+
+      updateHUD();
+      logEvent(`Entered ${cfg.name} (${cfg.size}x${cfg.size})`, '#00f3ff');
+      resizeCanvas();
+    }
+
+    function movePlayer(dx, dy) {
+      if (state.status !== 'PLAYING') return;
+
+      const nx = state.player.x + dx;
+      const ny = state.player.y + dy;
+
+      // Bounds and wall collision check
+      if (
+        nx < 0 ||
+        nx >= state.gridSize ||
+        ny < 0 ||
+        ny >= state.gridSize ||
+        state.grid[ny][nx] === 1
+      ) {
+        audio.sfxWallHit();
+        return;
+      }
+
+      state.player.x = nx;
+      state.player.y = ny;
+      state.visited.add(`${nx},${ny}`);
+      audio.sfxStep();
+      renderMaze();
+
+      // Check if player reached the Firewall Exit Gate
+      if (nx === state.exit.x && ny === state.exit.y) {
+        audio.sfxGateReached();
+        logEvent('Firewall Gate reached! Auth required.', '#ffb000');
+        openGateQuiz();
+      }
+    }
+
+    /* ========================================================================
+       10. FIREWALL CHECKPOINT QUIZ SYSTEM
+       ======================================================================== */
+    function openGateQuiz() {
+      state.status = 'QUIZ';
+      const lvlNum = LEVELS[state.currentLevelIdx].level;
+      state.quizQueue = QUESTION_BANK[lvlNum];
+      state.currentQuizIndex = 0;
+      state.quizLocked = false;
+
+      quizGateTitle.textContent = `GATE ${lvlNum} // SECURITY CHECKPOINT`;
+      quizBackdrop.classList.add('active');
+      renderQuizQuestion();
+    }
+
+    function renderQuizQuestion() {
+      state.quizLocked = false;
+      const qObj = state.quizQueue[state.currentQuizIndex];
+      quizQCounter.textContent = `QUERY ${state.currentQuizIndex + 1} OF ${state.quizQueue.length}`;
+      quizQuestionEl.textContent = qObj.q;
+
+      quizFeedbackEl.className = 'feedback-banner';
+      quizFeedbackEl.textContent = 'SELECT AUTHENTICATION RESPONSE';
+
+      quizOptionsEl.innerHTML = '';
+      const prefixes = ['[A]', '[B]', '[C]', '[D]'];
+
+      qObj.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<span class="option-prefix">${prefixes[idx]}</span><span>${optText}</span>`;
+        btn.addEventListener('click', () => handleQuizAnswer(idx, btn));
+        quizOptionsEl.appendChild(btn);
+      });
+    }
+
+    function handleQuizAnswer(selectedIdx, selectedBtn) {
+      if (state.quizLocked || state.status !== 'QUIZ') return;
+      state.quizLocked = true;
+
+      const qObj = state.quizQueue[state.currentQuizIndex];
+      const isCorrect = selectedIdx === qObj.answer;
+      state.totalQuestionsAnswered++;
+
+      // Disable all buttons and highlight correct/wrong choices
+      const allBtns = quizOptionsEl.querySelectorAll('.option-btn');
+      allBtns.forEach((b, i) => {
+        b.disabled = true;
+        if (i === qObj.answer) {
+          b.style.borderColor = '#39ff14';
+          b.style.background = 'rgba(57, 255, 20, 0.22)';
+        } else if (i === selectedIdx && !isCorrect) {
+          b.style.borderColor = '#ff2a55';
+          b.style.background = 'rgba(255, 42, 85, 0.22)';
+        }
+      });
+
+      if (isCorrect) {
+        state.questionsCorrect++;
+        audio.sfxAccessGranted();
+        quizFeedbackEl.className = 'feedback-banner feedback-granted';
+        quizFeedbackEl.textContent = 'ACCESS GRANTED // +50 PTS';
+        logEvent('Auth key verified (+50 PTS)', '#39ff14');
+      } else {
+        audio.sfxAnomaly();
+        quizFeedbackEl.className = 'feedback-banner feedback-anomaly';
+        quizFeedbackEl.textContent = 'ANOMALY LOGGED // BYPASSING NODE...';
+        logEvent('WARNING: Anomaly logged at gate!', '#ff2a55');
+
+        // Subtle terminal shake feedback
+        const term = document.getElementById('terminal-box');
+        term.classList.remove('shake-effect');
+        void term.offsetWidth;
+        term.classList.add('shake-effect');
+      }
+
+      updateHUD();
+
+      // Advance to next question or unlock next level after brief feedback pause
+      setTimeout(() => {
+        if (state.status !== 'QUIZ') return; // In case global timer hit 0 during delay
+
+        state.currentQuizIndex++;
+        if (state.currentQuizIndex < state.quizQueue.length) {
+          renderQuizQuestion();
+        } else {
+          completeLevelGate();
+        }
+      }, 1150);
+    }
+
+    function completeLevelGate() {
+      quizBackdrop.classList.remove('active');
+      state.levelsCleared++;
+      audio.sfxLevelClear();
+      updateHUD();
+      logEvent(`Subnet ${state.levelsCleared} bypassed! (+150 PTS)`, '#39ff14');
+
+      if (state.currentLevelIdx + 1 < LEVELS.length) {
+        loadLevel(state.currentLevelIdx + 1);
+      } else {
+        // All 3 levels cleared!
+        endGame(true);
+      }
+    }
+
+    /* ========================================================================
+       11. GLOBAL TIMER & GAME FLOW CONTROLLERS
+       ======================================================================== */
+    function switchScreen(target) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[target].classList.add('active');
+    }
+
+    function startGlobalTimer() {
+      clearInterval(state.timerInterval);
+      state.timerInterval = setInterval(() => {
+        if (state.status === 'START' || state.status === 'END') return;
+
+        state.timeRemaining--;
+        updateHUD();
+
+        if (state.timeRemaining <= 0) {
+          state.timeRemaining = 0;
+          updateHUD();
+          endGame(false);
+        }
+      }, 1000);
+    }
+
+    function startNewMission() {
+      audio.init();
+      audio.sfxLevelClear();
+
+      state.currentLevelIdx = 0;
+      state.timeRemaining = 180;
+      state.levelsCleared = 0;
+      state.questionsCorrect = 0;
+      state.totalQuestionsAnswered = 0;
+      state.quizLocked = false;
+
+      quizBackdrop.classList.remove('active');
+      sysLog.innerHTML = '<div>&gt; Uplink established. Trace active.</div>';
+
+      switchScreen('game');
+      loadLevel(0);
+      startGlobalTimer();
+    }
+
+    function endGame(completedAllLevels) {
+      clearInterval(state.timerInterval);
+      state.status = 'END';
+      quizBackdrop.classList.remove('active');
+
+      audio.sfxGameOver(completedAllLevels);
+
+      const levelPts = state.levelsCleared * 150;
+      const quizPts = state.questionsCorrect * 50;
+      // Time bonus (+2 pts per remaining second upon finishing Level 3)
+      const effectiveTimeSec = completedAllLevels ? state.timeRemaining : 0;
+      const timePts = effectiveTimeSec * 2;
+      const totalScore = levelPts + quizPts + timePts;
+
+      const endTag = document.getElementById('end-status-tag');
+      const endHeadline = document.getElementById('end-headline');
+
+      if (completedAllLevels) {
+        endTag.textContent = '[ ROOT ACCESS OBTAINED ]';
+        endTag.style.color = '#39ff14';
+        endTag.style.borderColor = '#39ff14';
+        endHeadline.textContent = 'FIREWALL BYPASSED!';
+        endHeadline.className = 'end-title highlight-green';
+      } else {
+        endTag.textContent = '[ TRACE COMPLETE // CONNECTION SEVERED ]';
+        endTag.style.color = '#ff2a55';
+        endTag.style.borderColor = '#ff2a55';
+        endHeadline.textContent = 'TIME EXPIRED';
+        endHeadline.className = 'end-title';
+        endHeadline.style.color = '#ff2a55';
+      }
+
+      document.getElementById('final-levels-count').textContent = state.levelsCleared;
+      document.getElementById('final-levels-pts').textContent = `${levelPts} PTS`;
+
+      document.getElementById('final-quiz-count').textContent = state.questionsCorrect;
+      document.getElementById('final-quiz-pts').textContent = `${quizPts} PTS`;
+
+      document.getElementById('final-time-sec').textContent = effectiveTimeSec;
+      document.getElementById('final-time-pts').textContent = `${timePts} PTS`;
+
+      document.getElementById('final-total-score').textContent = `${totalScore} PTS`;
+
+      switchScreen('end');
+    }
+
+    /* ========================================================================
+       12. EVENT LISTENERS (KEYBOARD, ON-SCREEN D-PAD, RESIZE)
+       ======================================================================== */
+    document.getElementById('start-btn').addEventListener('click', startNewMission);
+    document.getElementById('play-again-btn').addEventListener('click', startNewMission);
+
+    const soundBtn = document.getElementById('sound-toggle-btn');
+    soundBtn.addEventListener('click', () => {
+      const isOn = audio.toggle();
+      soundBtn.textContent = isOn ? 'SFX: ON' : 'SFX: OFF';
+      soundBtn.className = isOn ? 'btn-8bit btn-cyan btn-small' : 'btn-8bit btn-amber btn-small';
+    });
+
+    // Keyboard Controls (Arrow Keys + WASD)
+    window.addEventListener('keydown', (e) => {
+      if (state.status !== 'PLAYING') return;
+
+      const key = e.key.toLowerCase();
+      let handled = true;
+
+      if (key === 'arrowup' || key === 'w') {
+        flashDpad('btn-up');
+        movePlayer(0, -1);
+      } else if (key === 'arrowdown' || key === 's') {
+        flashDpad('btn-down');
+        movePlayer(0, 1);
+      } else if (key === 'arrowleft' || key === 'a') {
+        flashDpad('btn-left');
+        movePlayer(-1, 0);
+      } else if (key === 'arrowright' || key === 'd') {
+        flashDpad('btn-right');
+        movePlayer(1, 0);
+      } else {
+        handled = false;
+      }
+
+      if (handled) {
+        e.preventDefault();
+      }
+    });
+
+    function flashDpad(btnId) {
+      const el = document.getElementById(btnId);
+      if (!el) return;
+      el.classList.add('pressed');
+      setTimeout(() => el.classList.remove('pressed'), 110);
+    }
+
+    // On-Screen Clickable & Touch D-Pad Controls
+    function bindDpadButton(id, dx, dy) {
+      const btn = document.getElementById(id);
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        movePlayer(dx, dy);
+      });
+    }
+
+    bindDpadButton('btn-up', 0, -1);
+    bindDpadButton('btn-down', 0, 1);
+    bindDpadButton('btn-left', -1, 0);
+    bindDpadButton('btn-right', 1, 0);
+
+    // Responsive Canvas Resizing
+    window.addEventListener('resize', () => {
+      if (state.status === 'PLAYING' || state.status === 'QUIZ') {
+        resizeCanvas();
+      }
+    });
+  </script>
+</body>
+</html>
