@@ -698,9 +698,9 @@
       <div class="briefing-box">
         <h2 class="briefing-title">// MISSION PARAMETERS &amp; CONTROLS</h2>
         <ul class="briefing-list">
-          <li>Infiltrate <span class="highlight-cyan">3 Escalating Firewall Layers</span> before the <span class="highlight-amber">03:00 (180s)</span> global trace timer expires.</li>
+          <li>Infiltrate <span class="highlight-cyan">5 Escalating Firewall Layers</span> before the <span class="highlight-amber">03:00 (180s)</span> global trace timer expires.</li>
           <li>Navigate your <span class="highlight-green">DATA PACKET</span> from <span class="highlight-cyan">[IN]</span> (top-left) to the <span class="highlight-amber">[GATE]</span> (bottom-right) using <span class="highlight-green">ARROW KEYS</span>, <span class="highlight-green">WASD</span>, or the on-screen D-Pad.</li>
-          <li>At each Firewall Gate, decrypt <span class="highlight-amber">3 Security Checkpoint Questions</span> (9 total) to unlock the next subnet.</li>
+          <li>At each Firewall Gate, decrypt <span class="highlight-amber">3 Security Checkpoint Questions</span> (15 total) to unlock the next subnet.</li>
           <li><span class="highlight-green">SCORING:</span> +150 pts/Level Cleared &bull; +50 pts/Correct Answer &bull; +2 pts/Sec Remaining upon full breach.</li>
         </ul>
       </div>
@@ -726,7 +726,7 @@
         </div>
         <div class="hud-item">
           <span class="hud-label">DECRYPTED</span>
-          <span class="hud-value" id="hud-quiz">0 / 9</span>
+          <span class="hud-value" id="hud-quiz">0 / 15</span>
         </div>
         <div class="hud-item">
           <span class="hud-label">CURRENT SCORE</span>
@@ -826,11 +826,11 @@
 
       <div class="score-card">
         <div class="score-row">
-          <span>SUBNETS CLEARED (<span id="final-levels-count">0</span>/3 &times; 150)</span>
+          <span>SUBNETS CLEARED (<span id="final-levels-count">0</span>/5 &times; 150)</span>
           <span class="highlight-cyan" id="final-levels-pts">0 PTS</span>
         </div>
         <div class="score-row">
-          <span>QUESTIONS CORRECT (<span id="final-quiz-count">0</span>/9 &times; 50)</span>
+          <span>QUESTIONS CORRECT (<span id="final-quiz-count">0</span>/15 &times; 50)</span>
           <span class="highlight-cyan" id="final-quiz-pts">0 PTS</span>
         </div>
         <div class="score-row">
@@ -999,7 +999,7 @@
           answer: 0
         }
       ],
-      // Level 3: Deep Inspection (Advanced Cryptography, AppSec & Threat Defense)
+      // Level 3: Deep Inspection (AppSec & Stateful Inspection)
       3: [
         {
           q: "Unlike a stateless packet filter, what does a 'Stateful Inspection' firewall track?",
@@ -1031,6 +1031,62 @@
           ],
           answer: 0
         }
+      ],
+      // Level 4: Zero-Day Proxy (Exploitation & Lateral Movement)
+      4: [
+        {
+          q: "What technique does ASLR (Address Space Layout Randomization) use to mitigate buffer overflow exploits?",
+          options: [
+            "Encrypting all CPU registers with AES-256",
+            "Randomizing memory locations of system executables and libraries",
+            "Blocking all inbound ICMP echo requests",
+            "Disabling user-space stack execution entirely"
+          ],
+          answer: 1
+        },
+        {
+          q: "In Kerberos authentication, what is a 'Pass-the-Ticket' attack?",
+          options: [
+            "Brute-forcing user passwords over SSH",
+            "Stealing and reusing valid TGT/TGS tickets to impersonate a user",
+            "Flooding a Domain Controller with malformed LDAP queries",
+            "Downgrading TLS 1.3 handshakes to SSLv3"
+          ],
+          answer: 1
+        },
+        {
+          q: "Which DNS security extension cryptographically signs DNS records to prevent cache poisoning?",
+          options: ["DNSSEC", "DoH", "mDNS", "SPF"],
+          answer: 0
+        }
+      ],
+      // Level 5: Kernel Core (APT & Advanced Architecture)
+      5: [
+        {
+          q: "What is the primary security principle behind a 'Zero Trust' network architecture?",
+          options: [
+            "Air-gapping all internal servers from the internet",
+            "Never trust, always verify every request regardless of network location",
+            "Eliminating all asymmetric encryption inside the LAN",
+            "Relying solely on perimeter IDS appliances"
+          ],
+          answer: 1
+        },
+        {
+          q: "Which attack exploits speculative execution in modern CPUs to read privileged memory across isolation boundaries?",
+          options: [
+            "Spectre / Meltdown",
+            "Heartbleed",
+            "Slowloris",
+            "BlueKeep"
+          ],
+          answer: 0
+        },
+        {
+          q: "In TLS 1.3, how many round-trips (RTT) are required for a standard full handshake compared to TLS 1.2's 2-RTT?",
+          options: ["0-RTT always", "1-RTT", "3-RTT", "4-RTT"],
+          answer: 1
+        }
       ]
     };
 
@@ -1039,8 +1095,10 @@
        ======================================================================== */
     const LEVELS = [
       { level: 1, name: "LVL 1: PORT SCAN", size: 11 },
-      { level: 2, name: "LVL 2: PACKET FILTER", size: 15 },
-      { level: 3, name: "LVL 3: DEEP INSPECTION", size: 19 }
+      { level: 2, name: "LVL 2: PACKET FILTER", size: 13 },
+      { level: 3, name: "LVL 3: DEEP INSPECTION", size: 15 },
+      { level: 4, name: "LVL 4: ZERO-DAY PROXY", size: 17 },
+      { level: 5, name: "LVL 5: KERNEL CORE", size: 19 }
     ];
 
     /* ========================================================================
@@ -1298,7 +1356,7 @@
         if (quizTimerEl) quizTimerEl.style.color = 'var(--neon-amber)';
       }
 
-      hudQuiz.textContent = `${state.questionsCorrect} / 9`;
+      hudQuiz.textContent = `${state.questionsCorrect} / 15`;
       hudScore.textContent = String(calculateCurrentScore()).padStart(4, '0');
     }
 
@@ -1510,7 +1568,7 @@
 
       const levelPts = state.levelsCleared * 150;
       const quizPts = state.questionsCorrect * 50;
-      // Time bonus (+2 pts per remaining second upon finishing Level 3)
+      // Time bonus (+2 pts per remaining second upon finishing Level 5)
       const effectiveTimeSec = completedAllLevels ? state.timeRemaining : 0;
       const timePts = effectiveTimeSec * 2;
       const totalScore = levelPts + quizPts + timePts;
