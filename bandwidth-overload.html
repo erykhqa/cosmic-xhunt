@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Bandwidth Overload</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #070b14;
+      --bg-panel: #0d1424;
+      --bg-card: #131c31;
+      --border-subtle: rgba(148, 163, 184, 0.16);
+      --video-color: #38bdf8;
+      --msg-color: #22c55e;
+      --file-color: #eab308;
+      --junk-color: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-base);
+      color: #f1f5f9;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      height: 100dvh;
+      width: 100vw;
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.06), transparent 35%),
+        radial-gradient(circle at 85% 80%, rgba(34, 197, 94, 0.05), transparent 35%),
+        linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+    }
+
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom animations */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes glitchJitter {
+      0%, 100% { transform: translate(0, 0) skewX(0deg); }
+      20% { transform: translate(-1.5px, 0.5px) skewX(-2deg); }
+      40% { transform: translate(1.5px, -0.5px) skewX(2deg); }
+      60% { transform: translate(-1px, -1px) skewX(0deg); }
+      80% { transform: translate(1px, 1px) skewX(-1deg); }
+    }
+
+    @keyframes floatUpFade {
+      0% { opacity: 1; transform: translate(-50%, 0) scale(0.95); }
+      20% { opacity: 1; transform: translate(-50%, -10px) scale(1.05); }
+      100% { opacity: 0; transform: translate(-50%, -36px) scale(1); }
+    }
+
+    @keyframes shakeHorizontal {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    @keyframes bannerSlide {
+      0% { opacity: 0; transform: translate(-50%, -24px) scale(0.94); }
+      15% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -16px) scale(0.96); }
+    }
+
+    @keyframes packetSpawn {
+      0% { transform: scale(0.5); opacity: 0; }
+      70% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .packet-card {
+      position: absolute;
+      width: 96px;
+      height: 82px;
+      border-radius: 14px;
+      cursor: grab;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+      animation: packetSpawn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, left, top;
+      z-index: 20;
+      backdrop-filter: blur(8px);
+    }
+
+    @media (max-width: 640px) {
+      .packet-card {
+        width: 84px;
+        height: 74px;
+      }
+    }
+
+    .packet-card.dragging {
+      cursor: grabbing;
+      z-index: 100 !important;
+      transform: scale(1.08) rotate(-2deg);
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.75);
+      transition: none;
+    }
+
+    .packet-card.returning {
+      transition: left 0.28s cubic-bezier(0.22, 1, 0.36, 1), top 0.28s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s ease;
+    }
+
+    .packet-junk-inner {
+      animation: glitchJitter 1.8s infinite;
+    }
+
+    .drop-zone {
+      transition: all 0.16s ease;
+    }
+
+    .drop-zone.hovered {
+      transform: scale(1.015);
+      filter: brightness(1.18);
+    }
+
+    .drop-zone.hovered-valid {
+      box-shadow: 0 0 0 2px currentColor, 0 0 26px -4px currentColor;
+    }
+
+    .drop-zone.hovered-full {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 0 2px #ef4444, 0 0 28px -2px rgba(239, 68, 68, 0.65) !important;
+      animation: shakeHorizontal 0.32s ease;
+    }
+
+    .floating-feedback {
+      position: fixed;
+      pointer-events: none;
+      font-weight: 800;
+      font-size: 0.9rem;
+      z-index: 200;
+      animation: floatUpFade 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+      white-space: nowrap;
+    }
+
+    .level-banner-anim {
+      animation: bannerSlide 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Data stream flow line animation inside lanes */
+    @keyframes dataFlow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    .flow-stripe {
+      background-size: 200% 100%;
+      animation: dataFlow 2.2s linear infinite;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-dvh w-screen overflow-hidden select-none">
+
+  <!-- TOP HUD BAR -->
+  <header id="hud-bar" class="w-full bg-slate-950/90 border-b border-slate-800/90 px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2 z-30 shrink-0 shadow-lg">
+    <!-- Left: Title & Level Indicator -->
+    <div class="flex items-center gap-2.5 sm:gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse"></div>
+        <span class="font-mono-tech font-extrabold tracking-wider text-xs sm:text-sm text-slate-200 hidden md:inline">BANDWIDTH OVERLOAD</span>
+      </div>
+
+      <div class="h-5 w-[1px] bg-slate-800 hidden md:block"></div>
+
+      <div class="flex items-center gap-2 bg-slate-900/95 border border-slate-700/70 rounded-xl px-2.5 py-1">
+        <span id="hud-level-badge" class="font-mono-tech text-xs sm:text-sm font-bold text-sky-400">LVL 1/5</span>
+        <span class="text-slate-600">•</span>
+        <span id="hud-level-name" class="text-xs sm:text-sm font-semibold text-slate-200 truncate max-w-[115px] sm:max-w-[190px]">Slow Flow</span>
+      </div>
+    </div>
+
+    <!-- Center: Global 03:00 Countdown Timer -->
+    <div class="flex items-center gap-2 bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-1 shadow-inner">
+      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path stroke-linecap="round" d="M12 7v5l3 2"></path>
+      </svg>
+      <span id="hud-timer" class="font-mono-tech text-base sm:text-xl font-extrabold tracking-widest text-white">03:00</span>
+    </div>
+
+    <!-- Right: Score, Stability Bar & Mute Button -->
+    <div class="flex items-center gap-2.5 sm:gap-4">
+      <!-- Score -->
+      <div class="flex flex-col items-end bg-slate-900/90 border border-slate-800 rounded-xl px-2.5 py-1">
+        <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold leading-none">Score</span>
+        <span id="hud-score" class="font-mono-tech text-sm sm:text-base font-extrabold text-emerald-400 leading-tight">0</span>
+      </div>
+
+      <!-- Stability % Bar -->
+      <div class="flex flex-col w-24 sm:w-36 bg-slate-900/90 border border-slate-800 rounded-xl px-2.5 py-1">
+        <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider mb-1">
+          <span class="text-slate-400">Stability</span>
+          <span id="hud-stability-text" class="font-mono-tech text-emerald-400">100%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div id="hud-stability-bar" class="h-full bg-emerald-400 rounded-full transition-all duration-200" style="width: 100%"></div>
+        </div>
+      </div>
+
+      <!-- Mute Toggle -->
+      <button id="mute-btn" type="button" title="Toggle Sound" aria-label="Toggle Sound"
+        class="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-200 transition active:scale-95">
+        <!-- Sound On Icon -->
+        <svg id="icon-sound-on" class="w-4 h-4 sm:w-5 sm:h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14"></path>
+        </svg>
+        <!-- Sound Off Icon -->
+        <svg id="icon-sound-off" class="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M23 9l-6 6M17 9l6 6"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- LEVEL TRANSITION BANNER (2-second overlay on wave start) -->
+  <div id="level-banner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+    <div class="bg-slate-900/95 border-2 border-sky-400/80 shadow-[0_0_35px_rgba(56,189,248,0.4)] rounded-2xl px-6 py-3 text-center backdrop-blur-md">
+      <div id="banner-sub" class="font-mono-tech text-xs font-bold uppercase tracking-widest text-emerald-400 mb-0.5">WAVE ACTIVE</div>
+      <div id="banner-title" class="text-lg sm:text-xl font-extrabold text-white tracking-tight">LEVEL 1: SLOW FLOW</div>
+      <div id="banner-desc" class="text-xs text-slate-300 mt-0.5">Route packets to matching color lanes.</div>
+    </div>
+  </div>
+
+  <!-- MAIN PLAYFIELD -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 p-3 sm:p-4 overflow-hidden relative">
+
+    <!-- LEFT COLUMN (7 cols on lg): Incoming Traffic Zone + Junk Dustbin -->
+    <section class="lg:col-span-7 flex flex-col gap-3 h-full min-h-0">
+
+      <!-- INCOMING TRAFFIC ZONE -->
+      <div id="incoming-zone" class="flex-1 relative bg-slate-900/75 border border-slate-800 rounded-2xl overflow-hidden shadow-inner flex flex-col min-h-[220px]">
+        <!-- Zone Header -->
+        <div class="px-4 py-2.5 border-b border-slate-800/80 bg-slate-950/50 flex items-center justify-between z-10 pointer-events-none">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <h2 class="font-mono-tech text-xs sm:text-sm font-bold tracking-wider uppercase text-slate-200">Incoming Traffic Buffer</h2>
+          </div>
+          <span id="buffer-count" class="font-mono-tech text-xs text-slate-400">Active Packets: 0</span>
+        </div>
+
+        <!-- Subtle Radar / Grid Backdrop -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-20">
+          <div class="w-56 h-56 sm:w-72 sm:h-72 rounded-full border border-sky-500/30"></div>
+          <div class="absolute w-32 h-32 sm:w-44 sm:h-44 rounded-full border border-dashed border-sky-400/30"></div>
+        </div>
+
+        <!-- Packet Spawn Container -->
+        <div id="packet-arena" class="relative flex-1 w-full h-full">
+          <!-- Packets are dynamically injected here -->
+        </div>
+      </div>
+
+      <!-- JUNK DUSTBIN DROP ZONE -->
+      <div id="drop-junk" data-target="JUNK"
+        class="drop-zone h-24 sm:h-28 shrink-0 bg-red-950/25 border-2 border-dashed border-red-500/50 hover:border-red-400 rounded-2xl px-4 sm:px-6 flex items-center justify-between text-red-400 relative overflow-hidden">
+        <div class="flex items-center gap-3 sm:gap-4 pointer-events-none">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-500/15 border border-red-500/40 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6 sm:w-7 sm:h-7 text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono-tech text-sm sm:text-base font-extrabold tracking-wide text-red-300">QUARANTINE / JUNK DUSTBIN</span>
+              <span class="text-[10px] font-mono-tech uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">+15 PTS</span>
+            </div>
+            <p class="text-xs text-red-300/75 mt-0.5">Drop corrupt <span class="font-bold text-red-300">JUNK</span> packets here to purge from network</p>
+          </div>
+        </div>
+        <div class="hidden sm:flex flex-col items-end pointer-events-none">
+          <span class="font-mono-tech text-xs text-red-400/80 uppercase">Purged</span>
+          <span id="junk-purged-counter" class="font-mono-tech text-xl font-extrabold text-red-300">0</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN (5 cols on lg): Three Color-Coded Data Lanes -->
+    <section class="lg:col-span-5 flex flex-col gap-3 h-full min-h-0">
+
+      <!-- LANE 1: VIDEO DATA (Blue #38bdf8) -->
+      <div id="lane-VIDEO" data-target="VIDEO"
+        class="drop-zone flex-1 bg-slate-900/85 border-2 border-sky-500/45 rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between text-sky-400 relative overflow-hidden">
+        <!-- Full Warning Overlay Badge -->
+        <div id="full-badge-VIDEO" class="hidden absolute top-3 right-3 bg-red-600 text-white font-mono-tech text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-lg animate-pulse z-10">
+          LANE FULL!
+        </div>
+
+        <div class="flex items-start justify-between gap-2 pointer-events-none">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-sky-500/15 border border-sky-400/40 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="2" y="5" width="14" height="14" rx="2"></rect>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 10l6-3v10l-6-3v-4z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-mono-tech text-sm sm:text-base font-extrabold tracking-wide text-sky-300">VIDEO DATA</h3>
+                <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30">+20 PTS</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">High-bandwidth stream • Slower drain</p>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <span class="text-[10px] font-mono-tech uppercase text-slate-400 block">Load</span>
+            <span id="cap-text-VIDEO" class="font-mono-tech text-sm sm:text-base font-extrabold text-sky-300">UNLIMITED</span>
+          </div>
+        </div>
+
+        <!-- Visual Fill / Drain Progress Bar -->
+        <div class="mt-2 pointer-events-none">
+          <div class="w-full h-3.5 bg-slate-950/90 border border-sky-500/25 rounded-full overflow-hidden p-0.5">
+            <div id="bar-VIDEO" class="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-300 flow-stripe transition-all duration-100" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LANE 2: MESSAGES (Green #22c55e) -->
+      <div id="lane-MSG" data-target="MSG"
+        class="drop-zone flex-1 bg-slate-900/85 border-2 border-emerald-500/45 rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between text-emerald-400 relative overflow-hidden">
+        <div id="full-badge-MSG" class="hidden absolute top-3 right-3 bg-red-600 text-white font-mono-tech text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-lg animate-pulse z-10">
+          LANE FULL!
+        </div>
+
+        <div class="flex items-start justify-between gap-2 pointer-events-none">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 6l2.5-3H19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h1v3z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-mono-tech text-sm sm:text-base font-extrabold tracking-wide text-emerald-300">MESSAGES</h3>
+                <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">+15 PTS</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Low-latency packets • Fast drain</p>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <span class="text-[10px] font-mono-tech uppercase text-slate-400 block">Load</span>
+            <span id="cap-text-MSG" class="font-mono-tech text-sm sm:text-base font-extrabold text-emerald-300">UNLIMITED</span>
+          </div>
+        </div>
+
+        <div class="mt-2 pointer-events-none">
+          <div class="w-full h-3.5 bg-slate-950/90 border border-emerald-500/25 rounded-full overflow-hidden p-0.5">
+            <div id="bar-MSG" class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-300 flow-stripe transition-all duration-100" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LANE 3: FILE TRANSFER (Yellow #eab308) -->
+      <div id="lane-FILE" data-target="FILE"
+        class="drop-zone flex-1 bg-slate-900/85 border-2 border-yellow-500/45 rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between text-yellow-400 relative overflow-hidden">
+        <div id="full-badge-FILE" class="hidden absolute top-3 right-3 bg-red-600 text-white font-mono-tech text-xs font-extrabold px-2.5 py-1 rounded-lg shadow-lg animate-pulse z-10">
+          LANE FULL!
+        </div>
+
+        <div class="flex items-start justify-between gap-2 pointer-events-none">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-500/15 border border-yellow-400/40 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-mono-tech text-sm sm:text-base font-extrabold tracking-wide text-yellow-300">FILE TRANSFER</h3>
+                <span class="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-400/30">+15 PTS</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Bulk payload blocks • Moderate drain</p>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <span class="text-[10px] font-mono-tech uppercase text-slate-400 block">Load</span>
+            <span id="cap-text-FILE" class="font-mono-tech text-sm sm:text-base font-extrabold text-yellow-300">UNLIMITED</span>
+          </div>
+        </div>
+
+        <div class="mt-2 pointer-events-none">
+          <div class="w-full h-3.5 bg-slate-950/90 border border-yellow-500/25 rounded-full overflow-hidden p-0.5">
+            <div id="bar-FILE" class="h-full rounded-full bg-gradient-to-r from-yellow-500 to-amber-300 flow-stripe transition-all duration-100" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- START SCREEN MODAL -->
+  <div id="start-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-xl w-full bg-slate-900 border border-slate-700/90 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center">
+          <svg class="w-6 h-6 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="font-mono-tech text-xs font-bold uppercase tracking-widest text-sky-400">NOC TRAFFIC CONTROL</span>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">BANDWIDTH OVERLOAD</h1>
+        </div>
+      </div>
+
+      <p class="text-slate-300 text-sm sm:text-base leading-relaxed mb-5">
+        Route incoming data streams across <span class="text-white font-semibold">5 escalating levels</span> during a <span class="font-mono-tech text-sky-400 font-bold">03:00</span> network surge. Pause between waves to swap shifts with your teammates!
+      </p>
+
+      <!-- Packet Legend Grid -->
+      <div class="grid grid-cols-2 gap-2.5 mb-6">
+        <div class="bg-slate-950/80 border border-sky-500/30 rounded-xl p-3 flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-sky-400 shrink-0"></span>
+          <div class="text-xs">
+            <div class="font-mono-tech font-bold text-sky-300">VID → Blue Lane</div>
+            <div class="text-slate-400">+20 pts • Slow drain</div>
+          </div>
+        </div>
+        <div class="bg-slate-950/80 border border-emerald-500/30 rounded-xl p-3 flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 shrink-0"></span>
+          <div class="text-xs">
+            <div class="font-mono-tech font-bold text-emerald-300">MSG → Green Lane</div>
+            <div class="text-slate-400">+15 pts • Fast drain</div>
+          </div>
+        </div>
+        <div class="bg-slate-950/80 border border-yellow-500/30 rounded-xl p-3 flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-yellow-400 shrink-0"></span>
+          <div class="text-xs">
+            <div class="font-mono-tech font-bold text-yellow-300">FILE → Yellow Lane</div>
+            <div class="text-slate-400">+15 pts • Medium drain</div>
+          </div>
+        </div>
+        <div class="bg-slate-950/80 border border-red-500/30 rounded-xl p-3 flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-red-500 shrink-0"></span>
+          <div class="text-xs">
+            <div class="font-mono-tech font-bold text-red-400">JUNK → Dustbin</div>
+            <div class="text-slate-400">+15 pts • Purge threats</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 mb-6 space-y-1">
+        <div>• <span class="text-amber-300 font-semibold">Level 3+ Capacity Limits:</span> Full lanes bounce packets back—triage and wait for bandwidth to drain.</div>
+        <div>• <span class="text-red-400 font-semibold">Penalties:</span> Wrong lane = -10 pts & -8% Stability. Expired packet = -6% Stability.</div>
+      </div>
+
+      <button id="start-btn" type="button"
+        class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 font-extrabold text-base sm:text-lg tracking-wide shadow-lg shadow-sky-500/25 transition transform active:scale-[0.98] cursor-pointer">
+        INITIALIZE TRAFFIC CONTROL
+      </button>
+    </div>
+  </div>
+
+  <!-- LEVEL BREAK / TEAMMATE SWAP MODAL -->
+  <div id="handoff-modal" class="hidden fixed inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-lg w-full bg-slate-900 border border-sky-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div class="text-center mb-5">
+        <span id="handoff-badge" class="inline-block font-mono-tech text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 mb-2">
+          LEVEL 1 COMPLETE • +50 PTS
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">OPERATOR SHIFT HANDOFF</h2>
+        <p class="text-xs sm:text-sm text-amber-300 font-medium mt-1">
+          Timer Paused — Swap seats with your teammate now!
+        </p>
+      </div>
+
+      <!-- Current Shift Metrics -->
+      <div class="grid grid-cols-3 gap-2.5 mb-5">
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-[10px] font-mono-tech uppercase text-slate-400">Score</div>
+          <div id="handoff-score" class="font-mono-tech text-lg sm:text-xl font-extrabold text-emerald-400 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-[10px] font-mono-tech uppercase text-slate-400">Stability</div>
+          <div id="handoff-stability" class="font-mono-tech text-lg sm:text-xl font-extrabold text-sky-400 mt-0.5">100%</div>
+        </div>
+        <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-center">
+          <div class="text-[10px] font-mono-tech uppercase text-slate-400">Time Left</div>
+          <div id="handoff-time" class="font-mono-tech text-lg sm:text-xl font-extrabold text-white mt-0.5">02:35</div>
+        </div>
+      </div>
+
+      <!-- Next Level Briefing Card -->
+      <div class="bg-slate-950/90 border border-sky-500/30 rounded-2xl p-4 mb-6">
+        <div class="flex items-center justify-between mb-1">
+          <span id="handoff-next-label" class="font-mono-tech text-xs font-bold uppercase tracking-wider text-sky-400">UP NEXT • LEVEL 2/5</span>
+          <span id="handoff-next-duration" class="font-mono-tech text-xs text-slate-400">30s WAVE</span>
+        </div>
+        <div id="handoff-next-title" class="text-lg font-extrabold text-white">Faster Cadence</div>
+        <p id="handoff-next-desc" class="text-xs text-slate-300 mt-1 leading-relaxed">
+          Increased packet cadence and higher junk frequency!
+        </p>
+      </div>
+
+      <button id="next-level-btn" type="button"
+        class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 font-extrabold text-base tracking-wide shadow-lg shadow-sky-500/25 transition transform active:scale-[0.98] cursor-pointer">
+        OPERATOR READY — START LEVEL 2
+      </button>
+    </div>
+  </div>
+
+  <!-- FINAL REPORT SCREEN MODAL -->
+  <div id="end-modal" class="hidden fixed inset-0 z-50 bg-slate-950/92 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-lg w-full bg-slate-900 border border-slate-700/90 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div class="text-center mb-6">
+        <span id="end-badge" class="inline-block font-mono-tech text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 mb-2">
+          SHIFT COMPLETE — 03:00 SURVIVED
+        </span>
+        <h2 id="end-title" class="text-2xl sm:text-3xl font-extrabold text-white">FINAL NETWORK REPORT</h2>
+        <p id="end-subtitle" class="text-xs sm:text-sm text-slate-400 mt-1">All 5 surge waves mitigated successfully.</p>
+      </div>
+
+      <!-- Score Highlight Box -->
+      <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 text-center mb-5">
+        <div class="text-xs font-mono-tech uppercase tracking-wider text-slate-400">Final Score</div>
+        <div id="report-final-score" class="font-mono-tech text-4xl sm:text-5xl font-extrabold text-emerald-400 my-1">0</div>
+        <div id="report-survival-bonus" class="font-mono-tech text-xs text-sky-400">Includes +200 Stability Survival Bonus</div>
+      </div>
+
+      <!-- Metrics Grid -->
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Packets Sorted</div>
+          <div id="report-sorted" class="font-mono-tech text-xl font-bold text-sky-300 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Junk Cleared</div>
+          <div id="report-junk" class="font-mono-tech text-xl font-bold text-amber-300 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Packets Missed</div>
+          <div id="report-missed" class="font-mono-tech text-xl font-bold text-red-400 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-950/70 border border-slate-800/90 rounded-xl p-3">
+          <div class="text-xs text-slate-400">Final Stability</div>
+          <div id="report-stability" class="font-mono-tech text-xl font-bold text-emerald-400 mt-0.5">100%</div>
+        </div>
+      </div>
+
+      <button id="play-again-btn" type="button"
+        class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 font-extrabold text-base tracking-wide shadow-lg shadow-sky-500/25 transition transform active:scale-[0.98] cursor-pointer">
+        PLAY AGAIN
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * BANDWIDTH OVERLOAD
+     * Complete self-contained Network Traffic Controller game with level breaks for team swaps.
+     */
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. WEB AUDIO SYNTHESIZER (Zero external audio files)
+      // =========================================================================
+      class SoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+        }
+
+        init() {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              this.ctx = new AudioCtx();
+            }
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        }
+
+        toggleMute() {
+          this.muted = !this.muted;
+          return this.muted;
+        }
+
+        playTone({ freq = 440, endFreq = null, type = 'sine', duration = 0.14, gain = 0.14, delay = 0 }) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+
+          const now = this.ctx.currentTime + delay;
+          const osc = this.ctx.createOscillator();
+          const vol = this.ctx.createGain();
+
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (endFreq !== null) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+          }
+
+          vol.gain.setValueAtTime(0.001, now);
+          vol.gain.linearRampToValueAtTime(gain, now + 0.015);
+          vol.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+          osc.connect(vol);
+          vol.connect(this.ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + duration + 0.02);
+        }
+
+        playSuccess(isVideo = false) {
+          if (isVideo) {
+            this.playTone({ freq: 523.25, endFreq: 783.99, type: 'triangle', duration: 0.14, gain: 0.15 });
+            this.playTone({ freq: 783.99, endFreq: 1046.5, type: 'sine', duration: 0.18, gain: 0.12, delay: 0.07 });
+          } else {
+            this.playTone({ freq: 587.33, endFreq: 880, type: 'sine', duration: 0.15, gain: 0.14 });
+          }
+        }
+
+        playJunkPurge() {
+          this.playTone({ freq: 340, endFreq: 190, type: 'triangle', duration: 0.12, gain: 0.14 });
+          this.playTone({ freq: 660, endFreq: 880, type: 'sine', duration: 0.11, gain: 0.1, delay: 0.06 });
+        }
+
+        playError() {
+          this.playTone({ freq: 145, endFreq: 95, type: 'sawtooth', duration: 0.24, gain: 0.16 });
+          this.playTone({ freq: 110, endFreq: 80, type: 'square', duration: 0.22, gain: 0.1, delay: 0.04 });
+        }
+
+        playFullBounce() {
+          this.playTone({ freq: 260, endFreq: 180, type: 'triangle', duration: 0.12, gain: 0.14 });
+          this.playTone({ freq: 220, endFreq: 160, type: 'triangle', duration: 0.12, gain: 0.12, delay: 0.08 });
+        }
+
+        playPickup() {
+          this.playTone({ freq: 420, endFreq: 520, type: 'sine', duration: 0.05, gain: 0.07 });
+        }
+
+        playLevelUp() {
+          this.playTone({ freq: 440, type: 'triangle', duration: 0.12, gain: 0.14, delay: 0 });
+          this.playTone({ freq: 554.37, type: 'triangle', duration: 0.12, gain: 0.14, delay: 0.1 });
+          this.playTone({ freq: 659.25, type: 'triangle', duration: 0.14, gain: 0.14, delay: 0.2 });
+          this.playTone({ freq: 880, type: 'sine', duration: 0.28, gain: 0.16, delay: 0.3 });
+        }
+
+        playGameOver(survived) {
+          if (survived) {
+            this.playTone({ freq: 523.25, type: 'triangle', duration: 0.35, gain: 0.15, delay: 0 });
+            this.playTone({ freq: 659.25, type: 'triangle', duration: 0.35, gain: 0.15, delay: 0.12 });
+            this.playTone({ freq: 783.99, type: 'triangle', duration: 0.45, gain: 0.15, delay: 0.24 });
+            this.playTone({ freq: 1046.5, type: 'sine', duration: 0.6, gain: 0.18, delay: 0.36 });
+          } else {
+            this.playTone({ freq: 300, endFreq: 140, type: 'sawtooth', duration: 0.5, gain: 0.16 });
+          }
+        }
+      }
+
+      const sound = new SoundEngine();
+
+      // =========================================================================
+      // 2. LEVEL CONFIGURATION (Total = 180 seconds across 5 escalating levels)
+      // =========================================================================
+      const LEVELS = [
+        {
+          id: 1,
+          name: 'Slow Flow',
+          duration: 25,
+          spawnInterval: [2.1, 2.7],
+          ttlRange: [11.5, 13.5],
+          junkChance: 0.16,
+          burstChance: 0,
+          burstSize: [1, 1],
+          capacityActive: false,
+          desc: 'Route packets to matching color lanes. Drag JUNK to Dustbin.'
+        },
+        {
+          id: 2,
+          name: 'Faster Cadence',
+          duration: 30,
+          spawnInterval: [1.45, 2.0],
+          ttlRange: [9.5, 11.5],
+          junkChance: 0.25,
+          burstChance: 0.15,
+          burstSize: [2, 2],
+          capacityActive: false,
+          desc: 'Increased packet cadence and higher junk frequency!'
+        },
+        {
+          id: 3,
+          name: 'Lane Capacity & Triage',
+          duration: 35,
+          spawnInterval: [1.25, 1.75],
+          ttlRange: [9.0, 11.0],
+          junkChance: 0.24,
+          burstChance: 0.2,
+          burstSize: [2, 2],
+          capacityActive: true,
+          desc: 'Lane capacity limits active! Video drains slowest—prioritize carefully.'
+        },
+        {
+          id: 4,
+          name: 'Burst & Random Speeds',
+          duration: 45,
+          spawnInterval: [0.95, 2.2],
+          ttlRange: [6.8, 11.2],
+          junkChance: 0.27,
+          burstChance: 0.38,
+          burstSize: [2, 3],
+          capacityActive: true,
+          desc: 'Sudden traffic bursts and fast-expiring priority packets!'
+        },
+        {
+          id: 5,
+          name: 'Full Overload Survival',
+          duration: 45,
+          spawnInterval: [0.78, 1.35],
+          ttlRange: [6.5, 9.8],
+          junkChance: 0.30,
+          burstChance: 0.45,
+          burstSize: [2, 4],
+          capacityActive: true,
+          desc: 'Maximum network load! Hold stability until 00:00.'
+        }
+      ];
+
+      // Packet & Lane Definitions
+      const PACKET_META = {
+        VIDEO: {
+          code: 'VID',
+          label: 'VIDEO',
+          points: 20,
+          borderClass: 'border-sky-400/80',
+          bgClass: 'bg-sky-950/90',
+          badgeClass: 'bg-sky-500/25 text-sky-300 border-sky-400/40',
+          ringColor: '#38bdf8',
+          glowColor: 'rgba(56, 189, 248, 0.35)',
+          icon: `<svg class="w-4 h-4 text-sky-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M16 10l6-3v10l-6-3v-4z"/></svg>`
+        },
+        MSG: {
+          code: 'MSG',
+          label: 'MESSAGE',
+          points: 15,
+          borderClass: 'border-emerald-400/80',
+          bgClass: 'bg-emerald-950/90',
+          badgeClass: 'bg-emerald-500/25 text-emerald-300 border-emerald-400/40',
+          ringColor: '#22c55e',
+          glowColor: 'rgba(34, 197, 94, 0.35)',
+          icon: `<svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8M8 14h5m-9 6l2.5-3H19a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h1v3z"/></svg>`
+        },
+        FILE: {
+          code: 'FILE',
+          label: 'TRANSFER',
+          points: 15,
+          borderClass: 'border-yellow-400/80',
+          bgClass: 'bg-yellow-950/90',
+          badgeClass: 'bg-yellow-500/25 text-yellow-300 border-yellow-400/40',
+          ringColor: '#eab308',
+          glowColor: 'rgba(234, 179, 8, 0.35)',
+          icon: `<svg class="w-4 h-4 text-yellow-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>`
+        },
+        JUNK: {
+          code: 'JUNK',
+          label: 'CORRUPT',
+          points: 15,
+          borderClass: 'border-red-500/90',
+          bgClass: 'bg-red-950/95',
+          badgeClass: 'bg-red-500/30 text-red-200 border-red-400/50',
+          ringColor: '#ef4444',
+          glowColor: 'rgba(239, 68, 68, 0.45)',
+          icon: `<svg class="w-4 h-4 text-red-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`
+        }
+      };
+
+      const LANE_CONFIG = {
+        VIDEO: { maxCap: 4, drainRate: 0.32 },
+        MSG:   { maxCap: 6, drainRate: 0.72 },
+        FILE:  { maxCap: 5, drainRate: 0.48 }
+      };
+
+      // =========================================================================
+      // 3. GAME STATE & DOM REFERENCES
+      // =========================================================================
+      const state = {
+        running: false,
+        pausedForHandoff: false,
+        totalDuration: 180,
+        timeRemaining: 180,
+        currentLevelIndex: 0,
+        score: 0,
+        stability: 100,
+        packetsSorted: 0,
+        junkCleared: 0,
+        packetsMissed: 0,
+        nextPacketId: 1,
+        packets: [],
+        laneLoad: {
+          VIDEO: 0,
+          MSG: 0,
+          FILE: 0
+        },
+        spawnCooldown: 0.6,
+        burstQueue: 0,
+        burstDelay: 0,
+        draggingPacketId: null,
+        lastTimestamp: 0,
+        animFrameId: null,
+        bannerTimeout: null
+      };
+
+      const els = {
+        levelBadge: document.getElementById('hud-level-badge'),
+        levelName: document.getElementById('hud-level-name'),
+        timer: document.getElementById('hud-timer'),
+        score: document.getElementById('hud-score'),
+        stabilityText: document.getElementById('hud-stability-text'),
+        stabilityBar: document.getElementById('hud-stability-bar'),
+        muteBtn: document.getElementById('mute-btn'),
+        iconSoundOn: document.getElementById('icon-sound-on'),
+        iconSoundOff: document.getElementById('icon-sound-off'),
+        levelBanner: document.getElementById('level-banner'),
+        bannerSub: document.getElementById('banner-sub'),
+        bannerTitle: document.getElementById('banner-title'),
+        bannerDesc: document.getElementById('banner-desc'),
+        packetArena: document.getElementById('packet-arena'),
+        bufferCount: document.getElementById('buffer-count'),
+        junkPurgedCounter: document.getElementById('junk-purged-counter'),
+        dropZones: Array.from(document.querySelectorAll('.drop-zone')),
+        lanes: {
+          VIDEO: {
+            el: document.getElementById('lane-VIDEO'),
+            capText: document.getElementById('cap-text-VIDEO'),
+            bar: document.getElementById('bar-VIDEO'),
+            fullBadge: document.getElementById('full-badge-VIDEO')
+          },
+          MSG: {
+            el: document.getElementById('lane-MSG'),
+            capText: document.getElementById('cap-text-MSG'),
+            bar: document.getElementById('bar-MSG'),
+            fullBadge: document.getElementById('full-badge-MSG')
+          },
+          FILE: {
+            el: document.getElementById('lane-FILE'),
+            capText: document.getElementById('cap-text-FILE'),
+            bar: document.getElementById('bar-FILE'),
+            fullBadge: document.getElementById('full-badge-FILE')
+          }
+        },
+        startModal: document.getElementById('start-modal'),
+        startBtn: document.getElementById('start-btn'),
+        handoffModal: document.getElementById('handoff-modal'),
+        handoffBadge: document.getElementById('handoff-badge'),
+        handoffScore: document.getElementById('handoff-score'),
+        handoffStability: document.getElementById('handoff-stability'),
+        handoffTime: document.getElementById('handoff-time'),
+        handoffNextLabel: document.getElementById('handoff-next-label'),
+        handoffNextDuration: document.getElementById('handoff-next-duration'),
+        handoffNextTitle: document.getElementById('handoff-next-title'),
+        handoffNextDesc: document.getElementById('handoff-next-desc'),
+        nextLevelBtn: document.getElementById('next-level-btn'),
+        endModal: document.getElementById('end-modal'),
+        endBadge: document.getElementById('end-badge'),
+        endTitle: document.getElementById('end-title'),
+        endSubtitle: document.getElementById('end-subtitle'),
+        reportFinalScore: document.getElementById('report-final-score'),
+        reportSurvivalBonus: document.getElementById('report-survival-bonus'),
+        reportSorted: document.getElementById('report-sorted'),
+        reportJunk: document.getElementById('report-junk'),
+        reportMissed: document.getElementById('report-missed'),
+        reportStability: document.getElementById('report-stability'),
+        playAgainBtn: document.getElementById('play-again-btn')
+      };
+
+      // =========================================================================
+      // 4. UTILITY & UI FEEDBACK HELPERS
+      // =========================================================================
+      function randRange(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function randInt(min, max) {
+        return Math.floor(randRange(min, max + 1));
+      }
+
+      function formatTime(seconds) {
+        const clamped = Math.max(0, Math.ceil(seconds));
+        const mins = Math.floor(clamped / 60);
+        const secs = clamped % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+
+      function spawnFloatingText(x, y, text, colorClass = 'text-emerald-400') {
+        const div = document.createElement('div');
+        div.className = `floating-feedback font-mono-tech ${colorClass}`;
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        div.textContent = text;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 860);
+      }
+
+      function showLevelBanner(levelObj, showBonus = false) {
+        if (state.bannerTimeout) clearTimeout(state.bannerTimeout);
+        els.bannerSub.textContent = showBonus ? 'LEVEL CLEARED • +50 PTS BONUS' : `WAVE ${levelObj.id} OF 5 ACTIVE`;
+        els.bannerTitle.textContent = `LEVEL ${levelObj.id}: ${levelObj.name.toUpperCase()}`;
+        els.bannerDesc.textContent = levelObj.desc;
+
+        els.levelBanner.classList.remove('hidden', 'level-banner-anim');
+        void els.levelBanner.offsetWidth;
+        els.levelBanner.classList.add('level-banner-anim');
+
+        state.bannerTimeout = setTimeout(() => {
+          els.levelBanner.classList.add('hidden');
+        }, 2050);
+      }
+
+      function getLevelIndexForElapsed(elapsedSeconds) {
+        let acc = 0;
+        for (let i = 0; i < LEVELS.length; i++) {
+          acc += LEVELS[i].duration;
+          if (elapsedSeconds < acc) return i;
+        }
+        return LEVELS.length - 1;
+      }
+
+      function isLaneFull(laneType) {
+        const level = LEVELS[state.currentLevelIndex];
+        if (!level.capacityActive) return false;
+        const maxCap = LANE_CONFIG[laneType].maxCap;
+        return Math.ceil(state.laneLoad[laneType] - 0.01) >= maxCap;
+      }
+
+      // =========================================================================
+      // 5. HUD & LANE VISUAL UPDATES
+      // =========================================================================
+      function updateHUD() {
+        const lvl = LEVELS[state.currentLevelIndex];
+        els.levelBadge.textContent = `LVL ${lvl.id}/5`;
+        els.levelName.textContent = lvl.name;
+        els.timer.textContent = formatTime(state.timeRemaining);
+
+        if (state.timeRemaining <= 15) {
+          els.timer.classList.add('text-red-400', 'animate-pulse');
+          els.timer.classList.remove('text-white');
+        } else {
+          els.timer.classList.remove('text-red-400', 'animate-pulse');
+          els.timer.classList.add('text-white');
+        }
+
+        els.score.textContent = state.score.toLocaleString();
+
+        const stab = Math.max(0, Math.round(state.stability));
+        els.stabilityText.textContent = `${stab}%`;
+        els.stabilityBar.style.width = `${stab}%`;
+
+        if (stab > 55) {
+          els.stabilityBar.className = 'h-full bg-emerald-400 rounded-full transition-all duration-200';
+          els.stabilityText.className = 'font-mono-tech text-emerald-400';
+        } else if (stab > 25) {
+          els.stabilityBar.className = 'h-full bg-amber-400 rounded-full transition-all duration-200';
+          els.stabilityText.className = 'font-mono-tech text-amber-400';
+        } else {
+          els.stabilityBar.className = 'h-full bg-red-500 rounded-full transition-all duration-200';
+          els.stabilityText.className = 'font-mono-tech text-red-400';
+        }
+
+        els.bufferCount.textContent = `Active Packets: ${state.packets.length}`;
+        els.junkPurgedCounter.textContent = state.junkCleared;
+      }
+
+      function updateLanesUI() {
+        const lvl = LEVELS[state.currentLevelIndex];
+
+        ['VIDEO', 'MSG', 'FILE'].forEach((type) => {
+          const load = state.laneLoad[type];
+          const maxCap = LANE_CONFIG[type].maxCap;
+          const laneUI = els.lanes[type];
+
+          if (lvl.capacityActive) {
+            const discreteLoad = Math.min(maxCap, Math.ceil(load - 0.01));
+            laneUI.capText.textContent = `${discreteLoad} / ${maxCap}`;
+            const pct = Math.min(100, (load / maxCap) * 100);
+            laneUI.bar.style.width = `${pct}%`;
+
+            if (discreteLoad >= maxCap) {
+              laneUI.fullBadge.classList.remove('hidden');
+              laneUI.capText.classList.add('text-red-400');
+            } else {
+              laneUI.fullBadge.classList.add('hidden');
+              laneUI.capText.classList.remove('text-red-400');
+            }
+          } else {
+            laneUI.capText.textContent = 'UNLIMITED';
+            laneUI.fullBadge.classList.add('hidden');
+            laneUI.capText.classList.remove('text-red-400');
+            const visualPct = Math.min(100, (load / 5) * 100);
+            laneUI.bar.style.width = `${visualPct}%`;
+          }
+        });
+      }
+
+      // =========================================================================
+      // 6. PACKET SPAWNING & DRAG-AND-DROP INTERACTION
+      // =========================================================================
+      function choosePacketType() {
+        const lvl = LEVELS[state.currentLevelIndex];
+        if (Math.random() < lvl.junkChance) {
+          return 'JUNK';
+        }
+        const types = ['VIDEO', 'MSG', 'FILE'];
+        return types[Math.floor(Math.random() * types.length)];
+      }
+
+      function findSpawnCoordinates(arenaRect, cardW, cardH) {
+        const pad = 12;
+        const maxX = Math.max(pad, arenaRect.width - cardW - pad);
+        const maxY = Math.max(pad, arenaRect.height - cardH - pad);
+
+        let bestX = randRange(pad, maxX);
+        let bestY = randRange(pad, maxY);
+        let bestMinDist = -1;
+
+        for (let attempt = 0; attempt < 16; attempt++) {
+          const cx = randRange(pad, maxX);
+          const cy = randRange(pad, maxY);
+          let minDist = Infinity;
+
+          for (const p of state.packets) {
+            const dx = cx - p.homeX;
+            const dy = cy - p.homeY;
+            const d = Math.hypot(dx, dy);
+            if (d < minDist) minDist = d;
+          }
+
+          if (minDist > bestMinDist) {
+            bestMinDist = minDist;
+            bestX = cx;
+            bestY = cy;
+          }
+          if (minDist > 92) break;
+        }
+
+        return { x: bestX, y: bestY };
+      }
+
+      function spawnPacket() {
+        const arenaRect = els.packetArena.getBoundingClientRect();
+        if (arenaRect.width < 40 || arenaRect.height < 40) return;
+
+        const isMobile = window.innerWidth <= 640;
+        const cardW = isMobile ? 84 : 96;
+        const cardH = isMobile ? 74 : 82;
+
+        const type = choosePacketType();
+        const meta = PACKET_META[type];
+        const lvl = LEVELS[state.currentLevelIndex];
+        const ttl = randRange(lvl.ttlRange[0], lvl.ttlRange[1]);
+        const pos = findSpawnCoordinates(arenaRect, cardW, cardH);
+
+        const id = state.nextPacketId++;
+        const el = document.createElement('div');
+        el.className = `packet-card border-2 ${meta.borderClass} ${meta.bgClass} p-2 flex flex-col justify-between shadow-lg`;
+        el.style.left = `${pos.x}px`;
+        el.style.top = `${pos.y}px`;
+        el.style.boxShadow = `0 8px 20px -6px rgba(0,0,0,0.75), 0 0 14px -4px ${meta.glowColor}`;
+        el.dataset.packetId = String(id);
+
+        const innerGlitch = type === 'JUNK' ? 'packet-junk-inner' : '';
+        el.innerHTML = `
+          <div class="${innerGlitch} flex items-center justify-between pointer-events-none">
+            <span class="font-mono-tech text-[11px] font-extrabold px-1.5 py-0.5 rounded border ${meta.badgeClass}">${meta.code}</span>
+            ${meta.icon}
+          </div>
+          <div class="${innerGlitch} text-[10px] font-mono-tech font-semibold tracking-wider text-slate-300 text-center pointer-events-none">
+            ${meta.label}
+          </div>
+          <div class="w-full h-1.5 bg-slate-950/90 rounded-full overflow-hidden pointer-events-none">
+            <div class="ttl-bar h-full rounded-full transition-none" style="width: 100%; background-color: ${meta.ringColor};"></div>
+          </div>
+        `;
+
+        const packetObj = {
+          id,
+          type,
+          el,
+          ttlBar: el.querySelector('.ttl-bar'),
+          maxTtl: ttl,
+          remainingTtl: ttl,
+          homeX: pos.x,
+          homeY: pos.y,
+          isDragging: false
+        };
+
+        attachPacketPointerEvents(packetObj);
+        els.packetArena.appendChild(el);
+        state.packets.push(packetObj);
+        updateHUD();
+      }
+
+      function attachPacketPointerEvents(packet) {
+        let startPointerX = 0;
+        let startPointerY = 0;
+        let origLeft = 0;
+        let origTop = 0;
+
+        packet.el.addEventListener('pointerdown', (e) => {
+          if (!state.running || state.pausedForHandoff) return;
+          e.preventDefault();
+          sound.init();
+          sound.playPickup();
+
+          packet.isDragging = true;
+          state.draggingPacketId = packet.id;
+          packet.el.classList.remove('returning');
+          packet.el.classList.add('dragging');
+          packet.el.setPointerCapture(e.pointerId);
+
+          startPointerX = e.clientX;
+          startPointerY = e.clientY;
+          origLeft = parseFloat(packet.el.style.left) || packet.homeX;
+          origTop = parseFloat(packet.el.style.top) || packet.homeY;
+        });
+
+        packet.el.addEventListener('pointermove', (e) => {
+          if (!packet.isDragging) return;
+          e.preventDefault();
+
+          const dx = e.clientX - startPointerX;
+          const dy = e.clientY - startPointerY;
+          packet.el.style.left = `${origLeft + dx}px`;
+          packet.el.style.top = `${origTop + dy}px`;
+
+          highlightHoveredDropZone(e.clientX, e.clientY, packet);
+        });
+
+        const endDrag = (e) => {
+          if (!packet.isDragging) return;
+          packet.isDragging = false;
+          state.draggingPacketId = null;
+          packet.el.classList.remove('dragging');
+
+          if (packet.el.hasPointerCapture && packet.el.hasPointerCapture(e.pointerId)) {
+            packet.el.releasePointerCapture(e.pointerId);
+          }
+
+          const hoveredZone = getDropZoneAtPoint(e.clientX, e.clientY);
+          clearDropZoneHighlights();
+
+          if (hoveredZone) {
+            handlePacketDrop(packet, hoveredZone.dataset.target, e.clientX, e.clientY);
+          } else {
+            bouncePacketBack(packet);
+          }
+        };
+
+        packet.el.addEventListener('pointerup', endDrag);
+        packet.el.addEventListener('pointercancel', endDrag);
+      }
+
+      function getDropZoneAtPoint(clientX, clientY) {
+        for (const zone of els.dropZones) {
+          const rect = zone.getBoundingClientRect();
+          if (
+            clientX >= rect.left &&
+            clientX <= rect.right &&
+            clientY >= rect.top &&
+            clientY <= rect.bottom
+          ) {
+            return zone;
+          }
+        }
+        return null;
+      }
+
+      function clearDropZoneHighlights() {
+        for (const zone of els.dropZones) {
+          zone.classList.remove('hovered', 'hovered-valid', 'hovered-full');
+        }
+      }
+
+      function highlightHoveredDropZone(clientX, clientY, packet) {
+        clearDropZoneHighlights();
+        const zone = getDropZoneAtPoint(clientX, clientY);
+        if (!zone) return;
+
+        const target = zone.dataset.target;
+        zone.classList.add('hovered');
+
+        if (target !== 'JUNK' && isLaneFull(target)) {
+          zone.classList.add('hovered-full');
+        } else {
+          zone.classList.add('hovered-valid');
+        }
+      }
+
+      function bouncePacketBack(packet) {
+        packet.el.classList.add('returning');
+        packet.el.style.left = `${packet.homeX}px`;
+        packet.el.style.top = `${packet.homeY}px`;
+      }
+
+      function removePacket(packetId) {
+        const idx = state.packets.findIndex((p) => p.id === packetId);
+        if (idx !== -1) {
+          const [removed] = state.packets.splice(idx, 1);
+          if (removed && removed.el) {
+            removed.el.remove();
+          }
+          updateHUD();
+        }
+      }
+
+      function handlePacketDrop(packet, targetType, clientX, clientY) {
+        if (targetType !== 'JUNK' && isLaneFull(targetType)) {
+          sound.playFullBounce();
+          const laneEl = els.lanes[targetType].el;
+          laneEl.classList.remove('hovered-full');
+          void laneEl.offsetWidth;
+          laneEl.classList.add('hovered-full');
+          setTimeout(() => laneEl.classList.remove('hovered-full'), 350);
+
+          spawnFloatingText(clientX, clientY - 12, 'LANE FULL!', 'text-red-400');
+          bouncePacketBack(packet);
+          return;
+        }
+
+        if (packet.type === 'JUNK' && targetType === 'JUNK') {
+          state.score += 15;
+          state.junkCleared += 1;
+          sound.playJunkPurge();
+          spawnFloatingText(clientX, clientY - 10, '+15 PURGED', 'text-emerald-400');
+          removePacket(packet.id);
+          updateHUD();
+          return;
+        }
+
+        if (packet.type !== 'JUNK' && packet.type === targetType) {
+          const pts = PACKET_META[packet.type].points;
+          state.score += pts;
+          state.packetsSorted += 1;
+          state.laneLoad[targetType] += 1;
+
+          sound.playSuccess(packet.type === 'VIDEO');
+          spawnFloatingText(clientX, clientY - 10, `+${pts} PTS`, 'text-sky-300');
+          removePacket(packet.id);
+          updateLanesUI();
+          updateHUD();
+          return;
+        }
+
+        state.score = Math.max(0, state.score - 10);
+        state.stability = Math.max(0, state.stability - 8);
+        sound.playError();
+        spawnFloatingText(clientX, clientY - 10, '-10 PTS | -8% STAB', 'text-red-400');
+        removePacket(packet.id);
+        updateHUD();
+
+        if (state.stability <= 0) {
+          endSession(false);
+        }
+      }
+
+      // =========================================================================
+      // 7. MAIN SIMULATION LOOP
+      // =========================================================================
+      function updateSimulation(dt) {
+        // 1. Update Global 03:00 Countdown
+        state.timeRemaining = Math.max(0, state.timeRemaining - dt);
+        const elapsed = state.totalDuration - state.timeRemaining;
+
+        // 2. Check Level Completion -> Pause for Teammate Handoff Break
+        const targetLvlIdx = getLevelIndexForElapsed(elapsed);
+        if (targetLvlIdx > state.currentLevelIndex && state.timeRemaining > 0) {
+          pauseForTeammateHandoff(targetLvlIdx);
+          return;
+        }
+
+        // 3. Drain Data Lanes smoothly
+        ['VIDEO', 'MSG', 'FILE'].forEach((type) => {
+          if (state.laneLoad[type] > 0) {
+            state.laneLoad[type] = Math.max(0, state.laneLoad[type] - LANE_CONFIG[type].drainRate * dt);
+          }
+        });
+        updateLanesUI();
+
+        // 4. Handle Packet Spawning & Burst Waves
+        const currentLvl = LEVELS[state.currentLevelIndex];
+        if (state.burstQueue > 0) {
+          state.burstDelay -= dt;
+          if (state.burstDelay <= 0) {
+            spawnPacket();
+            state.burstQueue -= 1;
+            state.burstDelay = randRange(0.22, 0.42);
+          }
+        } else {
+          state.spawnCooldown -= dt;
+          if (state.spawnCooldown <= 0) {
+            spawnPacket();
+            if (Math.random() < currentLvl.burstChance) {
+              const extra = randInt(currentLvl.burstSize[0], currentLvl.burstSize[1]) - 1;
+              if (extra > 0) {
+                state.burstQueue = extra;
+                state.burstDelay = randRange(0.22, 0.38);
+              }
+            }
+            state.spawnCooldown = randRange(currentLvl.spawnInterval[0], currentLvl.spawnInterval[1]);
+          }
+        }
+
+        // 5. Update Packet Patience / TTL Timers
+        for (let i = state.packets.length - 1; i >= 0; i--) {
+          const p = state.packets[i];
+          p.remainingTtl -= dt;
+
+          const ratio = Math.max(0, p.remainingTtl / p.maxTtl);
+          p.ttlBar.style.width = `${ratio * 100}%`;
+
+          if (ratio < 0.28) {
+            p.ttlBar.style.backgroundColor = '#ef4444';
+          }
+
+          if (p.remainingTtl <= 0) {
+            const rect = p.el.getBoundingClientRect();
+            state.packetsMissed += 1;
+            state.stability = Math.max(0, state.stability - 6);
+            sound.playError();
+            spawnFloatingText(
+              rect.left + rect.width / 2,
+              rect.top,
+              'TIMEOUT -6% STAB',
+              'text-red-400'
+            );
+
+            if (p.isDragging) {
+              state.draggingPacketId = null;
+              clearDropZoneHighlights();
+            }
+            p.el.remove();
+            state.packets.splice(i, 1);
+
+            if (state.stability <= 0) {
+              updateHUD();
+              endSession(false);
+              return;
+            }
+          }
+        }
+
+        updateHUD();
+
+        // 6. Check 00:00 End Condition
+        if (state.timeRemaining <= 0) {
+          state.score += 50; // Final Level 5 completion bonus
+          endSession(true);
+        }
+      }
+
+      function gameLoop(timestamp) {
+        if (!state.running || state.pausedForHandoff) return;
+        if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+        const dt = Math.min(0.1, (timestamp - state.lastTimestamp) / 1000);
+        state.lastTimestamp = timestamp;
+
+        updateSimulation(dt);
+
+        if (state.running && !state.pausedForHandoff) {
+          state.animFrameId = requestAnimationFrame(gameLoop);
+        }
+      }
+
+      // =========================================================================
+      // 8. LEVEL HANDOFF BREAK, SESSION START & END REPORT SCREEN
+      // =========================================================================
+      function pauseForTeammateHandoff(nextLvlIdx) {
+        state.pausedForHandoff = true;
+        if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+
+        const completedLevel = LEVELS[state.currentLevelIndex];
+        const nextLevel = LEVELS[nextLvlIdx];
+
+        // Award +50 bonus points for completing the level
+        state.score += 50;
+        state.currentLevelIndex = nextLvlIdx;
+
+        // Clear remaining active packets and reset lane loads for a clean teammate handoff
+        state.packets.forEach((p) => p.el.remove());
+        state.packets = [];
+        state.laneLoad = { VIDEO: 0, MSG: 0, FILE: 0 };
+        state.burstQueue = 0;
+        state.draggingPacketId = null;
+        clearDropZoneHighlights();
+
+        updateLanesUI();
+        updateHUD();
+        sound.playLevelUp();
+
+        // Populate Handoff Modal
+        els.handoffBadge.textContent = `LEVEL ${completedLevel.id} COMPLETE • +50 PTS BONUS`;
+        els.handoffScore.textContent = state.score.toLocaleString();
+        els.handoffStability.textContent = `${Math.max(0, Math.round(state.stability))}%`;
+        els.handoffTime.textContent = formatTime(state.timeRemaining);
+
+        els.handoffNextLabel.textContent = `UP NEXT • LEVEL ${nextLevel.id}/5`;
+        els.handoffNextDuration.textContent = `${nextLevel.duration}s WAVE`;
+        els.handoffNextTitle.textContent = nextLevel.name;
+        els.handoffNextDesc.textContent = nextLevel.desc;
+        els.nextLevelBtn.textContent = `OPERATOR READY — START LEVEL ${nextLevel.id}`;
+
+        els.handoffModal.classList.remove('hidden');
+      }
+
+      function resumeFromHandoff() {
+        sound.init();
+        els.handoffModal.classList.add('hidden');
+
+        state.pausedForHandoff = false;
+        state.spawnCooldown = 0.4;
+        state.lastTimestamp = 0;
+
+        updateLanesUI();
+        updateHUD();
+        showLevelBanner(LEVELS[state.currentLevelIndex], false);
+        spawnPacket();
+
+        state.animFrameId = requestAnimationFrame(gameLoop);
+      }
+
+      function startGame() {
+        sound.init();
+        if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+
+        // Clear existing packets
+        state.packets.forEach((p) => p.el.remove());
+        state.packets = [];
+
+        // Reset state
+        state.running = true;
+        state.pausedForHandoff = false;
+        state.timeRemaining = 180;
+        state.currentLevelIndex = 0;
+        state.score = 0;
+        state.stability = 100;
+        state.packetsSorted = 0;
+        state.junkCleared = 0;
+        state.packetsMissed = 0;
+        state.nextPacketId = 1;
+        state.laneLoad = { VIDEO: 0, MSG: 0, FILE: 0 };
+        state.spawnCooldown = 0.4;
+        state.burstQueue = 0;
+        state.burstDelay = 0;
+        state.draggingPacketId = null;
+        state.lastTimestamp = 0;
+
+        els.startModal.classList.add('hidden');
+        els.handoffModal.classList.add('hidden');
+        els.endModal.classList.add('hidden');
+
+        updateLanesUI();
+        updateHUD();
+        showLevelBanner(LEVELS[0], false);
+
+        spawnPacket();
+
+        state.animFrameId = requestAnimationFrame(gameLoop);
+      }
+
+      function endSession(survived) {
+        state.running = false;
+        state.pausedForHandoff = false;
+        if (state.animFrameId) cancelAnimationFrame(state.animFrameId);
+        clearDropZoneHighlights();
+
+        const finalStability = Math.max(0, Math.round(state.stability));
+        const survivalBonus = survived ? Math.round(finalStability * 2) : 0;
+        state.score += survivalBonus;
+
+        sound.playGameOver(survived);
+
+        if (survived) {
+          els.endBadge.textContent = 'SHIFT COMPLETE — 03:00 SURVIVED';
+          els.endBadge.className = 'inline-block font-mono-tech text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 mb-2';
+          els.endTitle.textContent = 'FINAL NETWORK REPORT';
+          els.endSubtitle.textContent = 'All 5 surge waves mitigated successfully.';
+          els.reportSurvivalBonus.textContent = `Includes +${survivalBonus} Stability Survival Bonus (${finalStability}% × 2)`;
+        } else {
+          els.endBadge.textContent = 'CRITICAL FAILURE — STABILITY LOST';
+          els.endBadge.className = 'inline-block font-mono-tech text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 mb-2';
+          els.endTitle.textContent = 'NETWORK OVERLOADED';
+          els.endSubtitle.textContent = 'System stability dropped to 0% before shift completion.';
+          els.reportSurvivalBonus.textContent = 'No Survival Bonus awarded';
+        }
+
+        els.reportFinalScore.textContent = state.score.toLocaleString();
+        els.reportSorted.textContent = state.packetsSorted;
+        els.reportJunk.textContent = state.junkCleared;
+        els.reportMissed.textContent = state.packetsMissed;
+        els.reportStability.textContent = `${finalStability}%`;
+
+        els.endModal.classList.remove('hidden');
+      }
+
+      // =========================================================================
+      // 9. EVENT LISTENERS
+      // =========================================================================
+      els.startBtn.addEventListener('click', startGame);
+      els.nextLevelBtn.addEventListener('click', resumeFromHandoff);
+      els.playAgainBtn.addEventListener('click', startGame);
+
+      els.muteBtn.addEventListener('click', () => {
+        const isMuted = sound.toggleMute();
+        els.iconSoundOn.classList.toggle('hidden', isMuted);
+        els.iconSoundOff.classList.toggle('hidden', !isMuted);
+      });
+
+      window.addEventListener('resize', () => {
+        const arenaRect = els.packetArena.getBoundingClientRect();
+        const isMobile = window.innerWidth <= 640;
+        const cardW = isMobile ? 84 : 96;
+        const cardH = isMobile ? 74 : 82;
+
+        for (const p of state.packets) {
+          p.homeX = Math.min(p.homeX, Math.max(8, arenaRect.width - cardW - 8));
+          p.homeY = Math.min(p.homeY, Math.max(8, arenaRect.height - cardH - 8));
+          if (!p.isDragging) {
+            p.el.style.left = `${p.homeX}px`;
+            p.el.style.top = `${p.homeY}px`;
+          }
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
