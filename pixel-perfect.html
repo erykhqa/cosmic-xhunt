@@ -263,7 +263,7 @@
             selectedColor: 1, // Start with black selected
             isDrawing: false,
             isSubmitting: false,
-            timer: 180, // 3 minutes (180 seconds)
+            timer: 300, // 5 minutes (300 seconds)
             timerInterval: null,
             scores: [] // Array of exact match counts per level
         };
@@ -271,101 +271,74 @@
         const appEl = document.getElementById('app');
 
         // --- INITIALIZATION & EVENT LISTENERS ---
+
         function init() {
+            // Stop drawing if mouse/touch lifted anywhere
             window.addEventListener('mouseup', () => { state.isDrawing = false; });
             window.addEventListener('touchend', () => { state.isDrawing = false; });
-            window.addEventListener('keydown', handleKeyDown);
+
+            // Keyboard shortcuts (1-8) for color selection in Laptop Active mode
+            window.addEventListener('keydown', (e) => {
+                if (state.view !== 'laptop-active' || state.isSubmitting) return;
+                const num = parseInt(e.key, 10);
+                const maxColors = LEVELS[state.currentLevel].paletteSize;
+                if (num >= 1 && num <= maxColors) {
+                    state.selectedColor = num - 1;
+                    renderPalette();
+                }
+            });
+
             render();
         }
 
-        function handleKeyDown(e) {
-            if (state.view !== 'laptop-active' || state.isSubmitting) return;
-            const num = parseInt(e.key, 10);
-            const maxColors = LEVELS[state.currentLevel].paletteSize;
-            if (!isNaN(num) && num >= 1 && num <= maxColors) {
-                state.selectedColor = num - 1;
-                renderPalette();
-            }
-        }
-
-        // --- NAVIGATION & STATE TRANSITIONS ---
         function setView(newView) {
             stopTimer();
             state.view = newView;
             if (newView === 'home') {
                 state.currentLevel = 0;
                 state.scores = [];
-                state.timer = 180;
+                state.timer = 300;
                 state.isSubmitting = false;
             } else if (newView === 'tablet') {
                 state.currentLevel = 0;
             } else if (newView === 'laptop-pre') {
                 state.currentLevel = 0;
                 state.scores = [];
-                state.timer = 180;
+                state.timer = 300;
             }
             render();
         }
 
-        function selectPatternSet(setKey) {
-            state.patternSet = setKey;
+        function selectSet(setChar) {
+            state.patternSet = setChar;
             render();
         }
 
-        function changeTabletLevel(delta) {
-            const next = state.currentLevel + delta;
-            if (next >= 0 && next < LEVELS.length) {
-                state.currentLevel = next;
-                render();
-            }
-        }
+        // --- TIMER LOGIC ---
 
-        function startChallenge() {
-            state.currentLevel = 0;
-            state.scores = [];
-            state.selectedColor = 1;
-            state.isSubmitting = false;
-            initLevelGrid();
-            state.view = 'laptop-active';
-            render();
-            startTimer();
-        }
-
-        function initLevelGrid() {
-            const size = LEVELS[state.currentLevel].size;
-            state.playerGrid = new Array(size * size).fill(0);
-            // Reset selected color if out of bounds for current level
-            if (state.selectedColor >= LEVELS[state.currentLevel].paletteSize) {
-                state.selectedColor = 1;
-            }
-        }
-
-        function clearGrid() {
-            if (state.isSubmitting) return;
-            initLevelGrid();
-            renderGrid('player-grid-container', state.playerGrid, true);
-        }
-
-        // --- TIMER HELPERS ---
         function formatTime(seconds) {
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
-            return `${m}:${s < 10 ? '0' : ''}${s}`;
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
 
         function startTimer() {
             stopTimer();
-            state.timer = 180;
+            state.timer = 300;
             state.timerInterval = setInterval(() => {
+                if (state.isSubmitting) return;
                 state.timer--;
                 const timerEl = document.getElementById('timer-display');
                 if (timerEl) {
-                    timerEl.innerText = formatTime(state.timer);
-                    if (state.timer <= 30) timerEl.classList.add('text-red-400', 'animate-pulse');
+                    timerEl.textContent = formatTime(state.timer);
+                    if (state.timer <= 30) {
+                        timerEl.parentElement.classList.remove('text-emerald-400');
+                        timerEl.parentElement.classList.add('text-red-400', 'animate-pulse');
+                    }
                 }
                 if (state.timer <= 0) {
                     stopTimer();
-                    finishGame();
+                    handleTimeUp();
                 }
             }, 1000);
         }
@@ -377,54 +350,85 @@
             }
         }
 
-        // --- DRAWING INTERACTIONS ---
+        function handleTimeUp() {
+            // Calculate score for current incomplete grid before ending
+            const target = PATTERN_SETS[state.patternSet][state.currentLevel];
+            let matches = 0;
+            for (let i = 0; i < target.length; i++) {
+                if (state.playerGrid[i] === target[i]) matches++;
+            }
+            state.scores[state.currentLevel] = matches;
+            state.timer = 0;
+            setView('laptop-result');
+        }
+
+        // --- GAMEPLAY ACTIONS ---
+
+        function startChallenge() {
+            state.currentLevel = 0;
+            state.scores = [];
+            state.isSubmitting = false;
+            initLevelGrid();
+            state.view = 'laptop-active';
+            render();
+            startTimer();
+        }
+
+        function initLevelGrid() {
+            const size = LEVELS[state.currentLevel].size;
+            state.playerGrid = new Array(size * size).fill(0);
+            state.selectedColor = 1; // Default to black
+        }
+
+        function clearGrid() {
+            if (state.isSubmitting) return;
+            initLevelGrid();
+            renderGrid('player-grid-container', state.playerGrid, true);
+            renderPalette();
+        }
+
         function paintCell(idx) {
-            if (state.isSubmitting || idx < 0 || idx >= state.playerGrid.length) return;
-            if (state.playerGrid[idx] !== state.selectedColor) {
-                state.playerGrid[idx] = state.selectedColor;
-                const cellEl = document.getElementById(`cell-${idx}`);
-                if (cellEl) {
-                    const paletteLvl = state.currentLevel + 1;
-                    cellEl.style.backgroundColor = PALETTES[paletteLvl][state.selectedColor];
-                }
+            if (state.isSubmitting) return;
+            if (state.playerGrid[idx] === state.selectedColor) return;
+            state.playerGrid[idx] = state.selectedColor;
+            const cellEl = document.getElementById(`cell-${idx}`);
+            if (cellEl) {
+                const paletteLvl = state.currentLevel + 1;
+                cellEl.style.backgroundColor = PALETTES[paletteLvl][state.selectedColor];
             }
         }
 
         function handleCellDown(e, idx) {
-            if (e.cancelable) e.preventDefault();
+            e.preventDefault();
             state.isDrawing = true;
             paintCell(idx);
         }
 
         function handleCellEnter(e, idx) {
-            if (!state.isDrawing) return;
-            paintCell(idx);
+            if (state.isDrawing) {
+                paintCell(idx);
+            }
         }
 
         function handleTouchMove(e) {
             if (!state.isDrawing) return;
-            if (e.cancelable) e.preventDefault();
+            e.preventDefault();
             const touch = e.touches[0];
-            if (!touch) return;
-            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-            if (targetEl && targetEl.dataset && targetEl.dataset.index !== undefined) {
-                paintCell(parseInt(targetEl.dataset.index, 10));
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target && target.dataset && target.dataset.index !== undefined) {
+                paintCell(parseInt(target.dataset.index, 10));
             }
         }
 
-        // --- SUBMISSION & SCORING ---
         function submitPattern() {
             if (state.isSubmitting) return;
             state.isSubmitting = true;
 
-            const targetGrid = PATTERN_SETS[state.patternSet][state.currentLevel];
-            const totalCells = targetGrid.length;
+            const target = PATTERN_SETS[state.patternSet][state.currentLevel];
+            const totalCells = target.length;
             let matches = 0;
-
             for (let i = 0; i < totalCells; i++) {
-                if (state.playerGrid[i] === targetGrid[i]) {
-                    matches++;
-                }
+                if (state.playerGrid[i] === target[i]) matches++;
             }
 
             state.scores[state.currentLevel] = matches;
@@ -432,65 +436,52 @@
             const ptsEarned = matches * 4;
 
             // Show 2-second visual comparison popup
-            showFeedbackPopup(matches, totalCells, pct, ptsEarned, targetGrid, () => {
-                state.isSubmitting = false;
-                if (state.currentLevel + 1 < LEVELS.length) {
-                    state.currentLevel++;
-                    initLevelGrid();
-                    render();
-                } else {
-                    finishGame();
-                }
-            });
-        }
-
-        function showFeedbackPopup(matches, total, pct, pts, targetGrid, onComplete) {
             const overlay = document.getElementById('feedback-overlay');
             const content = document.getElementById('feedback-content');
             const size = LEVELS[state.currentLevel].size;
-            const paletteLvl = state.currentLevel + 1;
+            const palette = PALETTES[state.currentLevel + 1];
 
-            const buildMiniGrid = (gridArr) => {
-                return `
-                    <div class="grid gap-[1px] bg-slate-700 border-2 border-slate-600 rounded overflow-hidden w-28 h-28 mx-auto"
-                         style="grid-template-columns: repeat(${size}, 1fr); grid-template-rows: repeat(${size}, 1fr);">
-                        ${gridArr.map(val => `<div style="background-color: ${PALETTES[paletteLvl][val]};"></div>`).join('')}
-                    </div>
-                `;
-            };
+            const buildMiniGrid = (arr) => `
+                <div class="grid gap-[1px] bg-slate-700 border-2 border-slate-600 rounded w-28 h-28 mx-auto" style="grid-template-columns: repeat(${size}, 1fr);">
+                    ${arr.map(v => `<div style="background-color: ${palette[v]};"></div>`).join('')}
+                </div>
+            `;
 
             content.innerHTML = `
-                <h3 class="pixel-font text-lg text-yellow-400 mb-2">LEVEL ${state.currentLevel + 1} COMPLETE!</h3>
-                <p class="text-slate-300 text-sm mb-4">Accuracy: <span class="font-bold text-white">${pct}%</span> (${matches}/${total} cells) • <span class="text-emerald-400 font-bold">+${pts} pts</span></p>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
+                <h3 class="pixel-font text-lg text-yellow-400 mb-3">LEVEL ${state.currentLevel + 1} COMPLETE</h3>
+                <div class="grid grid-cols-2 gap-4 my-4">
                     <div>
-                        <p class="text-xs uppercase font-bold text-slate-400 mb-1.5">Your Grid</p>
+                        <div class="text-xs text-slate-400 uppercase font-bold mb-1">Your Grid</div>
                         ${buildMiniGrid(state.playerGrid)}
                     </div>
                     <div>
-                        <p class="text-xs uppercase font-bold text-slate-400 mb-1.5">Target</p>
-                        ${buildMiniGrid(targetGrid)}
+                        <div class="text-xs text-slate-400 uppercase font-bold mb-1">Target</div>
+                        ${buildMiniGrid(target)}
                     </div>
                 </div>
-                <p class="text-xs text-slate-400 animate-pulse">Advancing automatically...</p>
+                <div class="text-2xl font-bold ${pct === 100 ? 'text-emerald-400' : 'text-blue-400'}">${pct}% Match</div>
+                <div class="text-sm text-slate-300 mt-1">${matches}/${totalCells} cells (+${ptsEarned} pts)</div>
             `;
 
             overlay.classList.remove('hidden');
 
             setTimeout(() => {
                 overlay.classList.add('hidden');
-                onComplete();
+                state.isSubmitting = false;
+
+                if (state.currentLevel < LEVELS.length - 1) {
+                    state.currentLevel++;
+                    initLevelGrid();
+                    render();
+                } else {
+                    stopTimer();
+                    setView('laptop-result');
+                }
             }, 2000);
         }
 
-        function finishGame() {
-            stopTimer();
-            state.view = 'laptop-result';
-            render();
-        }
-
         // --- VIEW RENDERERS ---
+
         function render() {
             if (state.view === 'home') renderHome();
             else if (state.view === 'tablet') renderTablet();
@@ -502,52 +493,44 @@
         function renderHome() {
             appEl.innerHTML = `
                 <div class="text-center w-full max-w-2xl bg-slate-800/90 p-5 md:p-8 rounded-2xl shadow-2xl border border-slate-700">
-                    <div class="inline-block bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
-                        2-Device Co-Op Puzzle
+                    <div class="inline-block px-3 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-indigo-300 text-xs font-bold uppercase tracking-widest mb-3">
+                        Two-Device Memory & Speed Game
                     </div>
-                    <h1 class="pixel-font text-2xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-3 leading-relaxed">
+                    <h1 class="pixel-font text-2xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-6 leading-relaxed">
                         PIXEL PERFECT
                     </h1>
-                    <p class="text-slate-300 text-xs sm:text-sm mb-6 max-w-md mx-auto">
-                        Select the same <b>Pattern Set</b> on both devices, then choose whether this screen is the Reference Tablet or Player Laptop.
-                    </p>
 
                     <!-- Pattern Set Selector -->
-                    <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-700 mb-6">
+                    <div class="mb-6 bg-slate-900/90 p-4 rounded-xl border border-slate-700">
                         <label class="block text-xs uppercase tracking-wider text-slate-400 font-bold mb-3">
-                            1. Select Shared Pattern Set
+                            1. Select Shared Pattern Set (Match Both Devices)
                         </label>
-                        <div class="grid grid-cols-3 gap-2 sm:gap-3">
-                            ${['A', 'B', 'C'].map(setKey => {
-                                const active = state.patternSet === setKey;
-                                return `
-                                    <button onclick="selectPatternSet('${setKey}')"
-                                        class="btn-game py-3 px-2 rounded-xl border-2 text-sm sm:text-base transition-all ${
-                                            active 
-                                            ? 'bg-indigo-600 border-indigo-300 text-white shadow-lg shadow-indigo-500/30' 
-                                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'
-                                        }">
-                                        SET ${setKey}
-                                    </button>
-                                `;
-                            }).join('')}
+                        <div class="grid grid-cols-3 gap-3">
+                            ${['A', 'B', 'C'].map(setChar => `
+                                <button onclick="selectSet('${setChar}')" 
+                                    class="btn-game py-3 rounded-xl border-2 text-sm md:text-base ${state.patternSet === setChar 
+                                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/30' 
+                                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'}">
+                                    SET ${setChar}
+                                </button>
+                            `).join('')}
                         </div>
                     </div>
 
                     <!-- Device Mode Selector -->
                     <label class="block text-xs uppercase tracking-wider text-slate-400 font-bold mb-3">
-                        2. Choose Device Role
+                        2. Choose This Device's Role
                     </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <button onclick="setView('tablet')" class="btn-game p-4 sm:p-5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl border-b-4 border-amber-800 shadow-lg flex flex-col items-center justify-center gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button onclick="setView('tablet')" class="btn-game p-5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl border-b-4 border-amber-800 flex flex-col items-center justify-center gap-2 shadow-xl">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                            <span class="text-base sm:text-lg">TABLET MODE</span>
-                            <span class="text-[11px] font-normal normal-case text-amber-100">Target Pattern Display</span>
+                            <span class="text-base md:text-lg">TABLET MODE</span>
+                            <span class="text-[11px] font-normal normal-case text-amber-100">Target Reference Display</span>
                         </button>
 
-                        <button onclick="setView('laptop-pre')" class="btn-game p-4 sm:p-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl border-b-4 border-emerald-800 shadow-lg flex flex-col items-center justify-center gap-2">
+                        <button onclick="setView('laptop-pre')" class="btn-game p-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl border-b-4 border-emerald-800 flex flex-col items-center justify-center gap-2 shadow-xl">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                            <span class="text-base sm:text-lg">LAPTOP MODE</span>
+                            <span class="text-base md:text-lg">LAPTOP MODE</span>
                             <span class="text-[11px] font-normal normal-case text-emerald-100">Interactive Player Grid</span>
                         </button>
                     </div>
@@ -556,23 +539,22 @@
         }
 
         function renderTablet() {
-            const lvl = LEVELS[state.currentLevel];
-            const paletteLvl = state.currentLevel + 1;
-            const currentPalette = PALETTES[paletteLvl];
-            const targetGrid = PATTERN_SETS[state.patternSet][state.currentLevel];
+            const lvlData = LEVELS[state.currentLevel];
+            const targetPattern = PATTERN_SETS[state.patternSet][state.currentLevel];
+            const palette = PALETTES[state.currentLevel + 1];
 
             appEl.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-between py-1">
-                    <!-- Top Header -->
-                    <div class="w-full max-w-2xl flex items-center justify-between bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-700 shrink-0">
-                        <button onclick="setView('home')" class="text-xs font-bold uppercase text-slate-400 hover:text-white flex items-center gap-1">
-                            ← Home
+                <div class="w-full h-full flex flex-col items-center justify-between pb-2">
+                    <!-- Header -->
+                    <div class="w-full shrink-0 max-w-3xl flex justify-between items-center bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-md">
+                        <button onclick="setView('home')" class="text-xs text-slate-400 hover:text-white font-bold uppercase px-2 py-1 rounded bg-slate-700/50">
+                            ← Menu
                         </button>
                         <div class="text-center">
-                            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">SET ${state.patternSet} • TARGET DISPLAY</span>
-                            <div class="text-sm md:text-base font-bold text-white">Level ${state.currentLevel + 1}/${LEVELS.length} (${lvl.size}×${lvl.size})</div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Tablet Display • Set ${state.patternSet}</span>
+                            <h2 class="pixel-font text-sm md:text-lg text-white mt-1">LEVEL ${state.currentLevel + 1} / ${LEVELS.length} (${lvlData.size}×${lvlData.size})</h2>
                         </div>
-                        <div class="w-12"></div>
+                        <div class="w-14"></div>
                     </div>
 
                     <!-- Center Target Grid -->
@@ -581,55 +563,56 @@
                     </div>
 
                     <!-- Color Legend -->
-                    <div class="flex flex-wrap justify-center gap-2 bg-slate-800/90 px-3 py-2 rounded-xl border border-slate-700 mb-2 shrink-0 max-w-2xl">
-                        ${currentPalette.map((hex, i) => `
-                            <div class="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700 text-xs">
-                                <span class="w-3.5 h-3.5 rounded-sm border border-slate-500 inline-block" style="background-color: ${hex};"></span>
-                                <span class="text-slate-300 font-medium">${i + 1}: ${COLOR_NAMES[i]}</span>
+                    <div class="shrink-0 flex flex-wrap justify-center gap-2 bg-slate-800/90 px-3 py-2 rounded-xl border border-slate-700 mb-3 max-w-full">
+                        ${Array.from({ length: lvlData.paletteSize }, (_, i) => `
+                            <div class="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
+                                <span class="w-3.5 h-3.5 rounded-sm border border-slate-500" style="background-color: ${palette[i]};"></span>
+                                <span class="text-[11px] text-slate-300 font-semibold">${i + 1}: ${COLOR_NAMES[i]}</span>
                             </div>
                         `).join('')}
                     </div>
 
-                    <!-- Navigation Buttons -->
-                    <div class="w-full max-w-2xl grid grid-cols-2 gap-3 shrink-0">
-                        <button onclick="changeTabletLevel(-1)" ${state.currentLevel === 0 ? 'disabled' : ''}
-                            class="btn-game py-3 md:py-4 rounded-xl text-sm md:text-base border-b-4 ${
-                                state.currentLevel === 0 
+                    <!-- Level Navigation Controls -->
+                    <div class="shrink-0 w-full max-w-xl grid grid-cols-2 gap-3">
+                        <button onclick="if(state.currentLevel > 0) { state.currentLevel--; renderTablet(); }" 
+                            ${state.currentLevel === 0 ? 'disabled' : ''}
+                            class="btn-game py-3 md:py-4 rounded-xl border-b-4 text-sm md:text-base ${state.currentLevel === 0 
                                 ? 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed' 
-                                : 'bg-slate-700 hover:bg-slate-600 text-white border-slate-900'
-                            }">
+                                : 'bg-slate-700 hover:bg-slate-600 text-white border-slate-900'}">
                             ← Previous Level
                         </button>
-                        <button onclick="changeTabletLevel(1)" ${state.currentLevel === LEVELS.length - 1 ? 'disabled' : ''}
-                            class="btn-game py-3 md:py-4 rounded-xl text-sm md:text-base border-b-4 ${
-                                state.currentLevel === LEVELS.length - 1 
+
+                        <button onclick="if(state.currentLevel < LEVELS.length - 1) { state.currentLevel++; renderTablet(); }" 
+                            ${state.currentLevel === LEVELS.length - 1 ? 'disabled' : ''}
+                            class="btn-game py-3 md:py-4 rounded-xl border-b-4 text-sm md:text-base ${state.currentLevel === LEVELS.length - 1 
                                 ? 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed' 
-                                : 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800'
-                            }">
+                                : 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800'}">
                             Next Level (${state.currentLevel + 1}/${LEVELS.length}) →
                         </button>
                     </div>
                 </div>
             `;
 
-            renderGrid('tablet-grid-container', targetGrid, false);
+            renderGrid('tablet-grid-container', targetPattern, false);
         }
 
         function renderLaptopPre() {
             appEl.innerHTML = `
                 <div class="text-center w-full max-w-xl bg-slate-800 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-700">
                     <div class="flex justify-between items-center mb-4">
-                        <button onclick="setView('home')" class="text-xs font-bold uppercase text-slate-400 hover:text-white">← Back</button>
-                        <span class="bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 px-3 py-1 rounded-full text-xs font-bold">
-                            SET ${state.patternSet}
+                        <button onclick="setView('home')" class="text-xs text-slate-400 hover:text-white font-bold uppercase px-2 py-1 rounded bg-slate-700/50">
+                            ← Menu
+                        </button>
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-700/50">
+                            Pattern Set ${state.patternSet}
                         </span>
                     </div>
 
-                    <h2 class="pixel-font text-xl md:text-2xl text-emerald-400 mb-4 leading-relaxed">LAPTOP STATION</h2>
+                    <h2 class="pixel-font text-xl md:text-2xl text-white mb-5 leading-relaxed">LAPTOP STATION</h2>
 
                     <div class="text-left text-slate-300 text-sm md:text-base space-y-3 mb-6 bg-slate-900 p-4 md:p-6 rounded-xl border border-slate-700">
                         <p>✓ Look at the <b>Tablet Display</b> for targets.</p>
-                        <p>✓ You have <b>3 minutes</b> to complete all <b>5 levels</b> (4×4 up to 8×8).</p>
+                        <p>✓ You have <b>5 minutes</b> to complete all <b>5 levels</b> (4×4 up to 8×8).</p>
                         <p>✓ Click or drag to paint cells. Each matching cell awards <b>+4 pts</b>.</p>
                         <p>✓ Keyboard shortcuts <b>1–8</b> select colors quickly.</p>
                     </div>
