@@ -191,13 +191,13 @@
       </div>
     </div>
 
-    <!-- Center: Global 03:00 Countdown Timer -->
+    <!-- Center: Global 05:00 Countdown Timer -->
     <div class="flex items-center gap-2 bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-1 shadow-inner">
       <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="9"></circle>
         <path stroke-linecap="round" d="M12 7v5l3 2"></path>
       </svg>
-      <span id="hud-timer" class="font-mono-tech text-base sm:text-xl font-extrabold tracking-widest text-white">03:00</span>
+      <span id="hud-timer" class="font-mono-tech text-base sm:text-xl font-extrabold tracking-widest text-white">05:00</span>
     </div>
 
     <!-- Right: Score, Stability Bar & Mute Button -->
@@ -432,7 +432,7 @@
       </div>
 
       <p class="text-slate-300 text-sm sm:text-base leading-relaxed mb-5">
-        Route incoming data streams across <span class="text-white font-semibold">5 escalating levels</span> during a <span class="font-mono-tech text-sky-400 font-bold">03:00</span> network surge. Pause between waves to swap shifts with your teammates!
+        Route incoming data streams across <span class="text-white font-semibold">6 escalating shifts</span> during a <span class="font-mono-tech text-sky-400 font-bold">05:00</span> network surge. Pause between waves (40–60s each) to swap shifts with your teammates!
       </p>
 
       <!-- Packet Legend Grid -->
@@ -468,7 +468,7 @@
       </div>
 
       <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 mb-6 space-y-1">
-        <div>• <span class="text-amber-300 font-semibold">Level 3+ Capacity Limits:</span> Full lanes bounce packets back—triage and wait for bandwidth to drain.</div>
+        <div>• <span class="text-amber-300 font-semibold">Level 3+ Capacity & Level 5+ Tight Caps:</span> Full lanes bounce packets back—triage and wait for bandwidth to drain.</div>
         <div>• <span class="text-red-400 font-semibold">Penalties:</span> Wrong lane = -10 pts & -8% Stability. Expired packet = -6% Stability.</div>
       </div>
 
@@ -504,15 +504,15 @@
         </div>
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-center">
           <div class="text-[10px] font-mono-tech uppercase text-slate-400">Time Left</div>
-          <div id="handoff-time" class="font-mono-tech text-lg sm:text-xl font-extrabold text-white mt-0.5">02:35</div>
+          <div id="handoff-time" class="font-mono-tech text-lg sm:text-xl font-extrabold text-white mt-0.5">04:20</div>
         </div>
       </div>
 
       <!-- Next Level Briefing Card -->
       <div class="bg-slate-950/90 border border-sky-500/30 rounded-2xl p-4 mb-6">
         <div class="flex items-center justify-between mb-1">
-          <span id="handoff-next-label" class="font-mono-tech text-xs font-bold uppercase tracking-wider text-sky-400">UP NEXT • LEVEL 2/5</span>
-          <span id="handoff-next-duration" class="font-mono-tech text-xs text-slate-400">30s WAVE</span>
+          <span id="handoff-next-label" class="font-mono-tech text-xs font-bold uppercase tracking-wider text-sky-400">UP NEXT • LEVEL 2/6</span>
+          <span id="handoff-next-duration" class="font-mono-tech text-xs text-slate-400">45s WAVE</span>
         </div>
         <div id="handoff-next-title" class="text-lg font-extrabold text-white">Faster Cadence</div>
         <p id="handoff-next-desc" class="text-xs text-slate-300 mt-1 leading-relaxed">
@@ -532,10 +532,10 @@
     <div class="max-w-lg w-full bg-slate-900 border border-slate-700/90 rounded-3xl p-6 sm:p-8 shadow-2xl">
       <div class="text-center mb-6">
         <span id="end-badge" class="inline-block font-mono-tech text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 mb-2">
-          SHIFT COMPLETE — 03:00 SURVIVED
+          SHIFT COMPLETE — 05:00 SURVIVED
         </span>
         <h2 id="end-title" class="text-2xl sm:text-3xl font-extrabold text-white">FINAL NETWORK REPORT</h2>
-        <p id="end-subtitle" class="text-xs sm:text-sm text-slate-400 mt-1">All 5 surge waves mitigated successfully.</p>
+        <p id="end-subtitle" class="text-xs sm:text-sm text-slate-400 mt-1">All 6 surge waves mitigated successfully.</p>
       </div>
 
       <!-- Score Highlight Box -->
@@ -597,7 +597,7 @@
             }
           }
           if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
+            this.ctx.resume().catch(() => {});
           }
         }
 
@@ -606,75 +606,80 @@
           return this.muted;
         }
 
-        playTone({ freq = 440, endFreq = null, type = 'sine', duration = 0.14, gain = 0.14, delay = 0 }) {
+        playTone(freq, duration, type = 'sine', gainVal = 0.14, delay = 0, freqEnd = null) {
           if (this.muted) return;
           this.init();
           if (!this.ctx) return;
 
           const now = this.ctx.currentTime + delay;
           const osc = this.ctx.createOscillator();
-          const vol = this.ctx.createGain();
+          const gain = this.ctx.createGain();
 
           osc.type = type;
           osc.frequency.setValueAtTime(freq, now);
-          if (endFreq !== null) {
-            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+          if (freqEnd !== null) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
           }
 
-          vol.gain.setValueAtTime(0.001, now);
-          vol.gain.linearRampToValueAtTime(gain, now + 0.015);
-          vol.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(gainVal, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
-          osc.connect(vol);
-          vol.connect(this.ctx.destination);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
 
           osc.start(now);
           osc.stop(now + duration + 0.02);
         }
 
+        playPickup() {
+          this.playTone(460, 0.06, 'sine', 0.07, 0, 580);
+        }
+
         playSuccess(isVideo = false) {
           if (isVideo) {
-            this.playTone({ freq: 523.25, endFreq: 783.99, type: 'triangle', duration: 0.14, gain: 0.15 });
-            this.playTone({ freq: 783.99, endFreq: 1046.5, type: 'sine', duration: 0.18, gain: 0.12, delay: 0.07 });
+            this.playTone(523.25, 0.12, 'triangle', 0.13, 0);
+            this.playTone(659.25, 0.12, 'triangle', 0.13, 0.06);
+            this.playTone(783.99, 0.18, 'triangle', 0.14, 0.12);
           } else {
-            this.playTone({ freq: 587.33, endFreq: 880, type: 'sine', duration: 0.15, gain: 0.14 });
+            this.playTone(587.33, 0.11, 'sine', 0.12, 0);
+            this.playTone(880.0, 0.16, 'sine', 0.12, 0.06);
           }
         }
 
         playJunkPurge() {
-          this.playTone({ freq: 340, endFreq: 190, type: 'triangle', duration: 0.12, gain: 0.14 });
-          this.playTone({ freq: 660, endFreq: 880, type: 'sine', duration: 0.11, gain: 0.1, delay: 0.06 });
-        }
-
-        playError() {
-          this.playTone({ freq: 145, endFreq: 95, type: 'sawtooth', duration: 0.24, gain: 0.16 });
-          this.playTone({ freq: 110, endFreq: 80, type: 'square', duration: 0.22, gain: 0.1, delay: 0.04 });
+          this.playTone(300, 0.14, 'sawtooth', 0.10, 0, 95);
+          this.playTone(480, 0.12, 'triangle', 0.09, 0.06, 680);
         }
 
         playFullBounce() {
-          this.playTone({ freq: 260, endFreq: 180, type: 'triangle', duration: 0.12, gain: 0.14 });
-          this.playTone({ freq: 220, endFreq: 160, type: 'triangle', duration: 0.12, gain: 0.12, delay: 0.08 });
+          this.playTone(230, 0.09, 'square', 0.09, 0);
+          this.playTone(190, 0.11, 'square', 0.09, 0.09);
         }
 
-        playPickup() {
-          this.playTone({ freq: 420, endFreq: 520, type: 'sine', duration: 0.05, gain: 0.07 });
+        playError() {
+          this.playTone(155, 0.24, 'sawtooth', 0.15, 0, 105);
+          this.playTone(138, 0.24, 'square', 0.10, 0.02, 95);
         }
 
         playLevelUp() {
-          this.playTone({ freq: 440, type: 'triangle', duration: 0.12, gain: 0.14, delay: 0 });
-          this.playTone({ freq: 554.37, type: 'triangle', duration: 0.12, gain: 0.14, delay: 0.1 });
-          this.playTone({ freq: 659.25, type: 'triangle', duration: 0.14, gain: 0.14, delay: 0.2 });
-          this.playTone({ freq: 880, type: 'sine', duration: 0.28, gain: 0.16, delay: 0.3 });
+          const notes = [440, 554.37, 659.25, 880];
+          notes.forEach((n, idx) => {
+            this.playTone(n, 0.16, 'triangle', 0.13, idx * 0.07);
+          });
         }
 
         playGameOver(survived) {
           if (survived) {
-            this.playTone({ freq: 523.25, type: 'triangle', duration: 0.35, gain: 0.15, delay: 0 });
-            this.playTone({ freq: 659.25, type: 'triangle', duration: 0.35, gain: 0.15, delay: 0.12 });
-            this.playTone({ freq: 783.99, type: 'triangle', duration: 0.45, gain: 0.15, delay: 0.24 });
-            this.playTone({ freq: 1046.5, type: 'sine', duration: 0.6, gain: 0.18, delay: 0.36 });
+            const fanfare = [523.25, 659.25, 783.99, 1046.5];
+            fanfare.forEach((n, idx) => {
+              this.playTone(n, 0.24, 'triangle', 0.14, idx * 0.1);
+            });
           } else {
-            this.playTone({ freq: 300, endFreq: 140, type: 'sawtooth', duration: 0.5, gain: 0.16 });
+            const down = [320, 260, 210, 150];
+            down.forEach((n, idx) => {
+              this.playTone(n, 0.26, 'sawtooth', 0.12, idx * 0.12);
+            });
           }
         }
       }
@@ -682,68 +687,86 @@
       const sound = new SoundEngine();
 
       // =========================================================================
-      // 2. LEVEL CONFIGURATION (Total = 180 seconds across 5 escalating levels)
+      // 2. LEVEL CONFIGURATION (Total = 300 seconds / 5 minutes across 6 shifts)
       // =========================================================================
       const LEVELS = [
         {
           id: 1,
           name: 'Slow Flow',
-          duration: 25,
-          spawnInterval: [2.1, 2.7],
+          duration: 40,
+          spawnInterval: [2.0, 2.6],
           ttlRange: [11.5, 13.5],
           junkChance: 0.16,
           burstChance: 0,
           burstSize: [1, 1],
           capacityActive: false,
-          desc: 'Route packets to matching color lanes. Drag JUNK to Dustbin.'
+          tightCaps: false,
+          desc: 'Warm-up shift: route packets to matching lanes. Drag JUNK to Dustbin.'
         },
         {
           id: 2,
           name: 'Faster Cadence',
-          duration: 30,
-          spawnInterval: [1.45, 2.0],
+          duration: 45,
+          spawnInterval: [1.4, 1.95],
           ttlRange: [9.5, 11.5],
           junkChance: 0.25,
-          burstChance: 0.15,
+          burstChance: 0.16,
           burstSize: [2, 2],
           capacityActive: false,
+          tightCaps: false,
           desc: 'Increased packet cadence and higher junk frequency!'
         },
         {
           id: 3,
           name: 'Lane Capacity & Triage',
-          duration: 35,
-          spawnInterval: [1.25, 1.75],
+          duration: 50,
+          spawnInterval: [1.2, 1.7],
           ttlRange: [9.0, 11.0],
           junkChance: 0.24,
-          burstChance: 0.2,
+          burstChance: 0.22,
           burstSize: [2, 2],
           capacityActive: true,
-          desc: 'Lane capacity limits active! Video drains slowest—prioritize carefully.'
+          tightCaps: false,
+          desc: 'Lane capacity limits active (4 / 6 / 5)! Video drains slowest—triage wisely.'
         },
         {
           id: 4,
           name: 'Burst & Random Speeds',
-          duration: 45,
-          spawnInterval: [0.95, 2.2],
-          ttlRange: [6.8, 11.2],
+          duration: 55,
+          spawnInterval: [0.95, 2.05],
+          ttlRange: [7.0, 11.0],
           junkChance: 0.27,
-          burstChance: 0.38,
+          burstChance: 0.36,
           burstSize: [2, 3],
           capacityActive: true,
+          tightCaps: false,
           desc: 'Sudden traffic bursts and fast-expiring priority packets!'
         },
         {
           id: 5,
+          name: 'High-Traffic Surge',
+          duration: 50,
+          spawnInterval: [0.85, 1.5],
+          ttlRange: [6.8, 10.0],
+          junkChance: 0.29,
+          burstChance: 0.42,
+          burstSize: [2, 3],
+          capacityActive: true,
+          tightCaps: true,
+          desc: 'Tighter lane caps (3 / 5 / 4) with faster drain! Keep packets moving.'
+        },
+        {
+          id: 6,
           name: 'Full Overload Survival',
-          duration: 45,
-          spawnInterval: [0.78, 1.35],
-          ttlRange: [6.5, 9.8],
-          junkChance: 0.30,
-          burstChance: 0.45,
+          duration: 60,
+          spawnInterval: [0.74, 1.3],
+          ttlRange: [6.4, 9.6],
+          junkChance: 0.31,
+          burstChance: 0.48,
           burstSize: [2, 4],
           capacityActive: true,
-          desc: 'Maximum network load! Hold stability until 00:00.'
+          tightCaps: true,
+          desc: 'Final 60s push! Survive maximum network overload until 00:00.'
         }
       ];
 
@@ -796,9 +819,9 @@
       };
 
       const LANE_CONFIG = {
-        VIDEO: { maxCap: 4, drainRate: 0.32 },
-        MSG:   { maxCap: 6, drainRate: 0.72 },
-        FILE:  { maxCap: 5, drainRate: 0.48 }
+        VIDEO: { maxCap: 4, tightCap: 3, drainRate: 0.34, tightDrainRate: 0.40 },
+        MSG:   { maxCap: 6, tightCap: 5, drainRate: 0.74, tightDrainRate: 0.85 },
+        FILE:  { maxCap: 5, tightCap: 4, drainRate: 0.50, tightDrainRate: 0.58 }
       };
 
       // =========================================================================
@@ -807,8 +830,8 @@
       const state = {
         running: false,
         pausedForHandoff: false,
-        totalDuration: 180,
-        timeRemaining: 180,
+        totalDuration: 300,
+        timeRemaining: 300,
         currentLevelIndex: 0,
         score: 0,
         stability: 100,
@@ -924,7 +947,7 @@
 
       function showLevelBanner(levelObj, showBonus = false) {
         if (state.bannerTimeout) clearTimeout(state.bannerTimeout);
-        els.bannerSub.textContent = showBonus ? 'LEVEL CLEARED • +50 PTS BONUS' : `WAVE ${levelObj.id} OF 5 ACTIVE`;
+        els.bannerSub.textContent = showBonus ? 'LEVEL CLEARED • +50 PTS BONUS' : `WAVE ${levelObj.id} OF ${LEVELS.length} ACTIVE`;
         els.bannerTitle.textContent = `LEVEL ${levelObj.id}: ${levelObj.name.toUpperCase()}`;
         els.bannerDesc.textContent = levelObj.desc;
 
@@ -937,19 +960,29 @@
         }, 2050);
       }
 
-      function getLevelIndexForElapsed(elapsedSeconds) {
+      function getLevelIndexForElapsed(elapsed) {
         let acc = 0;
         for (let i = 0; i < LEVELS.length; i++) {
           acc += LEVELS[i].duration;
-          if (elapsedSeconds < acc) return i;
+          if (elapsed < acc) return i;
         }
         return LEVELS.length - 1;
+      }
+
+      function getLaneCapacity(laneType) {
+        const level = LEVELS[state.currentLevelIndex];
+        return level.tightCaps ? LANE_CONFIG[laneType].tightCap : LANE_CONFIG[laneType].maxCap;
+      }
+
+      function getLaneDrainRate(laneType) {
+        const level = LEVELS[state.currentLevelIndex];
+        return level.tightCaps ? LANE_CONFIG[laneType].tightDrainRate : LANE_CONFIG[laneType].drainRate;
       }
 
       function isLaneFull(laneType) {
         const level = LEVELS[state.currentLevelIndex];
         if (!level.capacityActive) return false;
-        const maxCap = LANE_CONFIG[laneType].maxCap;
+        const maxCap = getLaneCapacity(laneType);
         return Math.ceil(state.laneLoad[laneType] - 0.01) >= maxCap;
       }
 
@@ -958,7 +991,7 @@
       // =========================================================================
       function updateHUD() {
         const lvl = LEVELS[state.currentLevelIndex];
-        els.levelBadge.textContent = `LVL ${lvl.id}/5`;
+        els.levelBadge.textContent = `LVL ${lvl.id}/${LEVELS.length}`;
         els.levelName.textContent = lvl.name;
         els.timer.textContent = formatTime(state.timeRemaining);
 
@@ -996,7 +1029,7 @@
 
         ['VIDEO', 'MSG', 'FILE'].forEach((type) => {
           const load = state.laneLoad[type];
-          const maxCap = LANE_CONFIG[type].maxCap;
+          const maxCap = getLaneCapacity(type);
           const laneUI = els.lanes[type];
 
           if (lvl.capacityActive) {
@@ -1301,7 +1334,7 @@
         // 3. Drain Data Lanes smoothly
         ['VIDEO', 'MSG', 'FILE'].forEach((type) => {
           if (state.laneLoad[type] > 0) {
-            state.laneLoad[type] = Math.max(0, state.laneLoad[type] - LANE_CONFIG[type].drainRate * dt);
+            state.laneLoad[type] = Math.max(0, state.laneLoad[type] - getLaneDrainRate(type) * dt);
           }
         });
         updateLanesUI();
@@ -1373,7 +1406,7 @@
 
         // 6. Check 00:00 End Condition
         if (state.timeRemaining <= 0) {
-          state.score += 50; // Final Level 5 completion bonus
+          state.score += 50; // Final Level 6 completion bonus
           endSession(true);
         }
       }
@@ -1423,7 +1456,7 @@
         els.handoffStability.textContent = `${Math.max(0, Math.round(state.stability))}%`;
         els.handoffTime.textContent = formatTime(state.timeRemaining);
 
-        els.handoffNextLabel.textContent = `UP NEXT • LEVEL ${nextLevel.id}/5`;
+        els.handoffNextLabel.textContent = `UP NEXT • LEVEL ${nextLevel.id}/${LEVELS.length}`;
         els.handoffNextDuration.textContent = `${nextLevel.duration}s WAVE`;
         els.handoffNextTitle.textContent = nextLevel.name;
         els.handoffNextDesc.textContent = nextLevel.desc;
@@ -1459,7 +1492,7 @@
         // Reset state
         state.running = true;
         state.pausedForHandoff = false;
-        state.timeRemaining = 180;
+        state.timeRemaining = 300;
         state.currentLevelIndex = 0;
         state.score = 0;
         state.stability = 100;
@@ -1500,10 +1533,10 @@
         sound.playGameOver(survived);
 
         if (survived) {
-          els.endBadge.textContent = 'SHIFT COMPLETE — 03:00 SURVIVED';
+          els.endBadge.textContent = 'SHIFT COMPLETE — 05:00 SURVIVED';
           els.endBadge.className = 'inline-block font-mono-tech text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 mb-2';
           els.endTitle.textContent = 'FINAL NETWORK REPORT';
-          els.endSubtitle.textContent = 'All 5 surge waves mitigated successfully.';
+          els.endSubtitle.textContent = `All ${LEVELS.length} surge waves mitigated successfully.`;
           els.reportSurvivalBonus.textContent = `Includes +${survivalBonus} Stability Survival Bonus (${finalStability}% × 2)`;
         } else {
           els.endBadge.textContent = 'CRITICAL FAILURE — STABILITY LOST';
