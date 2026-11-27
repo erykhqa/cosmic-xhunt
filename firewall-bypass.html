@@ -971,167 +971,167 @@
        Each option includes a subtle, non-obvious contextual clue for newcomers
        ======================================================================== */
     const QUESTION_BANK = {
-      // Level 1: Port Scan (Foundational Networking & Security)
+      // Level 1: Basic Internet Safety
       1: [
         {
-          q: "Which network port is standard for secure, encrypted HTTPS web traffic?",
+          q: "What is the main purpose of a firewall?",
           options: [
-            { text: "Port 21", clue: "Historically used for plain-text file transfers between a client and server." },
-            { text: "Port 80", clue: "Handles unencrypted web browsing where data travels in readable clear text." },
-            { text: "Port 443", clue: "Pairs standard web delivery with a cryptographic TLS padlock handshake." },
-            { text: "Port 3389", clue: "Opens a graphical remote desktop window onto a distant Windows machine." }
-          ],
-          answer: 2
-        },
-        {
-          q: "What is the primary role of a network firewall?",
-          options: [
-            { text: "Increase Wi-Fi antenna range", clue: "Deals with radio wave amplification rather than inspecting digital packets." },
-            { text: "Monitor and filter incoming/outgoing traffic based on security rules", clue: "Acts like a checkpoint guard checking every visitor against an access list." },
-            { text: "Defragment local hard drives", clue: "Reorganizes scattered physical storage sectors to speed up disk reads." },
-            { text: "Encrypt monitor display signals", clue: "Protects physical video cables between a graphics card and a screen." }
+            { text: "To make the internet faster", clue: "Relates to bandwidth speed rather than filtering network connections." },
+            { text: "To protect a network from unauthorized access", clue: "Acts like a security guard inspecting incoming and outgoing traffic." },
+            { text: "To increase storage space", clue: "Involves hard drive capacity rather than network safety." },
+            { text: "To automatically create passwords", clue: "Describes a password manager utility instead of a network barrier." }
           ],
           answer: 1
         },
         {
-          q: "Which protocol translates human-readable domain names (like example.com) into IP addresses?",
+          q: "What should you do if a website asks for suspicious permissions?",
           options: [
-            { text: "DNS", clue: "Functions like the internet's automated phonebook, matching names to numbers." },
-            { text: "FTP", clue: "Focuses on uploading and downloading files across directories." },
-            { text: "SMTP", clue: "Routes outgoing electronic mail messages between mail servers." },
-            { text: "ARP", clue: "Maps local network addresses to physical hardware card IDs on a single LAN." }
+            { text: "Click Allow immediately", clue: "Grants full access right away without verifying if the site actually needs it." },
+            { text: "Refresh the website repeatedly", clue: "Reloads the webpage without addressing the underlying permission prompt." },
+            { text: "Check the request before granting permission", clue: "Pauses to verify whether the site legitimately needs access to your camera, location, or files." },
+            { text: "Share the website with your friends", clue: "Spreads a potentially unsafe link to other people." }
           ],
-          answer: 0
+          answer: 2
+        },
+        {
+          q: "Why should you be careful when using public Wi-Fi to access important accounts?",
+          options: [
+            { text: "It may drain your phone battery", clue: "Focuses on power consumption rather than online privacy risks." },
+            { text: "Your data may be exposed to unauthorized users", clue: "Shared open networks make it easier for nearby attackers to intercept unencrypted traffic." },
+            { text: "It cannot open websites", clue: "Public hotspots still load standard websites normally." },
+            { text: "It automatically deletes your data", clue: "Connecting to a wireless router does not erase files on your device." }
+          ],
+          answer: 1
         }
       ],
-      // Level 2: Packet Filter (Intermediate Protocols, Attacks & Defenses)
+      // Level 2: Recognising Threats
       2: [
         {
-          q: "A 'SYN Flood' attack attempts to exhaust server resources by exploiting which protocol's handshake?",
+          q: "You receive a message claiming that you have won a prize, but you never entered any contest. What should you do?",
           options: [
-            { text: "UDP", clue: "Sends datagrams immediately without establishing a formal connection first." },
-            { text: "ICMP", clue: "Carries diagnostic echo messages like 'ping' rather than session streams." },
-            { text: "TCP", clue: "Requires a polite three-step 'hello, hello-back, acknowledged' ritual before talking." },
-            { text: "DHCP", clue: "Automatically leases temporary IP addresses to devices joining a network." }
+            { text: "Click the link to claim the prize", clue: "Follows an unverified prompt that often leads to fake login pages or malware." },
+            { text: "Forward the message to your friends", clue: "Passes a likely scam along to others." },
+            { text: "Ignore it and verify whether the message is legitimate", clue: "Avoids interacting with unexpected rewards until checked through an official source." },
+            { text: "Enter your personal information", clue: "Hands sensitive identity details over to an unverified sender." }
           ],
           answer: 2
         },
         {
-          q: "Which secure protocol replaces Telnet to provide encrypted remote command-line administration on Port 22?",
+          q: "What is phishing?",
           options: [
-            { text: "SNMP", clue: "Used primarily to poll routers and switches for health metrics and alerts." },
-            { text: "SSH", clue: "Creates an armored terminal tunnel so keystrokes cannot be eavesdropped." },
-            { text: "RDP", clue: "Streams a full visual desktop interface rather than a lightweight text shell." },
-            { text: "POP3", clue: "Downloads stored emails from an inbox server onto a local device." }
+            { text: "A technique to improve internet speed", clue: "Refers to connection optimization rather than social engineering." },
+            { text: "A scam designed to steal sensitive information", clue: "Uses deceptive messages disguised as trusted organizations to trick people into revealing logins or card details." },
+            { text: "A method of storing files", clue: "Describes cloud backup or local archiving rather than an online attack." },
+            { text: "A tool for automatically detecting viruses", clue: "Describes antivirus software rather than a fraudulent scheme." }
           ],
           answer: 1
         },
         {
-          q: "What type of vulnerability occurs when untrusted user input alters a database query's logic?",
+          q: "What should you do if your computer suddenly displays multiple suspicious pop-ups?",
           options: [
-            { text: "SQL Injection (SQLi)", clue: "Tricks a backend storage engine into treating typed form text as executable commands." },
-            { text: "ARP Spoofing", clue: "Falsifies hardware address announcements on a local Wi-Fi or Ethernet segment." },
-            { text: "MAC Flooding", clue: "Overwhelms a physical network switch's memory table with fake device IDs." },
-            { text: "DNS Amplification", clue: "Bounces high-volume name lookups off public resolvers toward a victim." }
+            { text: "Click all the pop-ups to close them", clue: "Fake close buttons inside adware windows can trigger unwanted downloads." },
+            { text: "Download the applications suggested", clue: "Installing software promoted by sudden alerts often introduces malicious programs." },
+            { text: "Avoid interacting with them and check your device for security threats", clue: "Safely closes the browser safely or runs an antivirus scan without clicking inside the alerts." },
+            { text: "Enter your password to remove them", clue: "Legitimate system alerts will never ask for your account password inside a pop-up ad." }
           ],
-          answer: 0
+          answer: 2
         }
       ],
-      // Level 3: Deep Inspection (AppSec & Stateful Inspection)
+      // Level 3: Password & Protection
       3: [
         {
-          q: "Unlike a stateless packet filter, what does a 'Stateful Inspection' firewall track?",
+          q: "Which of the following is the most secure password?",
           options: [
-            { text: "Only physical MAC addresses", clue: "Operates strictly at the hardware link layer without looking at conversations." },
-            { text: "The state and context of active network connections", clue: "Remembers whether an incoming reply actually belongs to an earlier outgoing request." },
-            { text: "CPU clock voltage fluctuations", clue: "Monitors physical silicon power draw rather than network traffic." },
-            { text: "Browser cookie expiration dates", clue: "Inspects client-side storage timers inside a user's web browser." }
+            { text: "12345678", clue: "One of the most common number sequences guessed instantly by automated tools." },
+            { text: "password123", clue: "Combines a dictionary word with simple digits that attackers test first." },
+            { text: "Your name and date of birth", clue: "Uses personal details that can easily be found on social media profiles." },
+            { text: "A long and unique password that is difficult to guess", clue: "Maximizes length and unpredictability while avoiding reuse across different websites." }
           ],
-          answer: 1
+          answer: 3
         },
         {
-          q: "Which cryptographic property ensures that compromised long-term server keys cannot decrypt past captured TLS sessions?",
+          q: "Why should you enable Two-Factor Authentication (2FA)?",
           options: [
-            { text: "Security Through Obscurity", clue: "Relies on hiding how a system works rather than mathematical key isolation." },
-            { text: "Perfect Forward Secrecy (PFS)", clue: "Generates unique, disposable session keys for every single conversation." },
-            { text: "MD5 Checksum Salting", clue: "Adds random characters to one-way file fingerprints before hashing." },
-            { text: "Symmetric Key Reuse", clue: "Applies the exact same shared secret repeatedly across multiple sessions." }
-          ],
-          answer: 1
-        },
-        {
-          q: "Which attack forces an authenticated user's browser to execute unwanted actions on a trusted web application?",
-          options: [
-            { text: "Cross-Site Request Forgery (CSRF)", clue: "Abuses a website's automatic trust in a logged-in browser's session cookies." },
-            { text: "BGP Route Hijacking", clue: "Redirects massive blocks of internet traffic between autonomous provider networks." },
-            { text: "SYN-ACK Reflection", clue: "Uses intermediary servers to bounce connection acknowledgments at a target." },
-            { text: "Rainbow Table Collision", clue: "Uses precomputed hash lookup charts to reverse stored password digests." }
+            { text: "To add an extra layer of security to your account", clue: "Requires a second verification step—like an authenticator code—even if someone learns your password." },
+            { text: "To delete all applications", clue: "Account verification settings do not remove installed programs." },
+            { text: "To make your computer faster", clue: "Focuses on login protection rather than hardware processing speed." },
+            { text: "To allow others to share your account", clue: "Designed to keep unauthorized users out, not share access." }
           ],
           answer: 0
+        },
+        {
+          q: "Someone asks you to share your OTP through WhatsApp. What should you do?",
+          options: [
+            { text: "Share it if the person is someone you know", clue: "A friend's messaging account could be hacked by scammers trying to hijack your login." },
+            { text: "Send it immediately", clue: "Hands over a single-use verification code meant strictly for your eyes only." },
+            { text: "Never share your OTP with anyone", clue: "One-time passwords act as the final key to approve logins or transactions." },
+            { text: "Post it in a group chat to ask for advice", clue: "Exposes your active security code to multiple people at once." }
+          ],
+          answer: 2
         }
       ],
-      // Level 4: Zero-Day Proxy (Exploitation & Lateral Movement)
+      // Level 4: Everyday Cybersecurity
       4: [
         {
-          q: "What technique does ASLR (Address Space Layout Randomization) use to mitigate buffer overflow exploits?",
+          q: "What is the risk of using a USB drive found in a public place?",
           options: [
-            { text: "Encrypting all CPU registers with AES-256", clue: "Scrambles processor math registers rather than shifting where code lives." },
-            { text: "Randomizing memory locations of system executables and libraries", clue: "Shuffles the furniture in RAM every reboot so hardcoded jump coordinates miss." },
-            { text: "Blocking all inbound ICMP echo requests", clue: "Silences network ping probes at the perimeter interface." },
-            { text: "Disabling user-space stack execution entirely", clue: "Describes DEP/NX bit protection rather than location shuffling." }
-          ],
-          answer: 1
-        },
-        {
-          q: "In Kerberos authentication, what is a 'Pass-the-Ticket' attack?",
-          options: [
-            { text: "Brute-forcing user passwords over SSH", clue: "Repeatedly guesses login strings against a remote terminal prompt." },
-            { text: "Stealing and reusing valid TGT/TGS tickets to impersonate a user", clue: "Copies an already-stamped cryptographic wristband from memory to enter restricted doors." },
-            { text: "Flooding a Domain Controller with malformed LDAP queries", clue: "Crashes directory services using oversized search syntax." },
-            { text: "Downgrading TLS 1.3 handshakes to SSLv3", clue: "Forces web encryption backward onto an obsolete 1990s cipher suite." }
-          ],
-          answer: 1
-        },
-        {
-          q: "Which DNS security extension cryptographically signs DNS records to prevent cache poisoning?",
-          options: [
-            { text: "DNSSEC", clue: "Attaches verifiable digital signatures to domain lookup answers so fakes are rejected." },
-            { text: "DoH", clue: "Wraps domain queries inside HTTPS traffic for privacy, without signing zone records." },
-            { text: "mDNS", clue: "Resolves local device names on a home or office subnet without a central server." },
-            { text: "SPF", clue: "Lists which mail servers are authorized to send emails on behalf of a domain." }
+            { text: "It may contain malware", clue: "Unknown flash drives can automatically execute hidden harmful software as soon as they are plugged in." },
+            { text: "It will make your computer faster", clue: "External storage sticks do not boost processor performance." },
+            { text: "It can increase your RAM", clue: "Flash drives provide file storage rather than high-speed system memory." },
+            { text: "It will automatically delete your Wi-Fi", clue: "Plugging in a USB stick does not erase saved wireless networks." }
           ],
           answer: 0
+        },
+        {
+          q: "Why is it important to update your software and applications regularly?",
+          options: [
+            { text: "To change your wallpaper", clue: "Cosmetic theme changes are separate from routine software maintenance." },
+            { text: "To improve security and fix software vulnerabilities", clue: "Patches close newly discovered security holes before attackers can exploit them." },
+            { text: "To delete all old files", clue: "System updates preserve your personal documents and photos." },
+            { text: "To reduce screen size", clue: "Software patches do not alter the physical dimensions of your display." }
+          ],
+          answer: 1
+        },
+        {
+          q: "What is the safest thing to do when using a public computer?",
+          options: [
+            { text: "Save your password in the browser", clue: "Stores your credentials so the next person at the desk can open your accounts." },
+            { text: "Leave your account logged in", clue: "Leaves your private messages and settings wide open to the next user." },
+            { text: "Log out of your account after use", clue: "Ends your active session so nobody else on that shared machine can access your profile." },
+            { text: "Share your account with the next user", clue: "Gives strangers direct access to your personal identity and data." }
+          ],
+          answer: 2
         }
       ],
-      // Level 5: Kernel Core (APT & Advanced Architecture)
+      // Level 5: Smart Decision Making
       5: [
         {
-          q: "What is the primary security principle behind a 'Zero Trust' network architecture?",
+          q: "If a firewall blocks an application, what should you do?",
           options: [
-            { text: "Air-gapping all internal servers from the internet", clue: "Physically disconnects cables rather than continuously validating identity." },
-            { text: "Never trust, always verify every request regardless of network location", clue: "Treats devices inside the office LAN with the same skepticism as unknown external ones." },
-            { text: "Eliminating all asymmetric encryption inside the LAN", clue: "Removes public-key cryptography rather than enforcing strict identity checks." },
-            { text: "Relying solely on perimeter IDS appliances", clue: "Depends on a single outer castle wall instead of micro-segmented verification." }
+            { text: "Disable the firewall immediately", clue: "Turns off your entire network defense shield just to let one unverified program through." },
+            { text: "Ignore the security restriction", clue: "Leaves the program blocked without checking whether it is safe or needed." },
+            { text: "Check the application and its permissions before making any changes", clue: "Verifies whether the program is trustworthy and legitimately requires network access first." },
+            { text: "Download the same application from an unknown website", clue: "Unofficial download mirrors frequently bundle tampered or infected installers." }
           ],
-          answer: 1
+          answer: 2
         },
         {
-          q: "Which attack exploits speculative execution in modern CPUs to read privileged memory across isolation boundaries?",
+          q: "You receive an email from your bank asking for your password to verify your account. What should you do?",
           options: [
-            { text: "Spectre / Meltdown", clue: "Tricks a processor into guessing ahead and leaving secret data traces in its cache." },
-            { text: "Heartbleed", clue: "Exploited a missing bounds check in OpenSSL's heartbeat extension buffer." },
-            { text: "Slowloris", clue: "Holds web server connections open indefinitely by sending partial HTTP headers." },
-            { text: "BlueKeep", clue: "Targeted a wormable vulnerability in Windows Remote Desktop Services." }
+            { text: "Reply with your password", clue: "Legitimate financial institutions will never ask you to send your password via email." },
+            { text: "Click the link provided", clue: "Links inside unsolicited account-verification emails often lead to lookalike phishing sites." },
+            { text: "Contact the bank through its official channels", clue: "Uses the phone number on your bank card or official app to confirm if the request is real." },
+            { text: "Forward the email to a friend", clue: "Does not verify your account status and risks spreading a fraudulent link." }
           ],
-          answer: 0
+          answer: 2
         },
         {
-          q: "In TLS 1.3, how many round-trips (RTT) are required for a standard full handshake compared to TLS 1.2's 2-RTT?",
+          q: "What is the best way to reduce the risk of having your personal information stolen?",
           options: [
-            { text: "0-RTT always", clue: "Only possible when resuming a previously established session with cached keys." },
-            { text: "1-RTT", clue: "Cuts negotiation latency in half by sending key shares in the very first flight." },
-            { text: "3-RTT", clue: "Adds extra back-and-forth latency rather than streamlining the protocol." },
-            { text: "4-RTT", clue: "Requires four full network exchanges before encrypted application data flows." }
+            { text: "Use the same password for every account", clue: "If one website suffers a data breach, attackers can unlock all your other accounts." },
+            { text: "Share personal information only when necessary and through trusted channels", clue: "Minimizes your digital footprint and ensures sensitive details go only to verified services." },
+            { text: "Click every link you receive", clue: "Exposes your device to malicious downloads and deceptive login traps." },
+            { text: "Ignore security warnings", clue: "Bypasses built-in browser and system alerts designed to warn you about unsafe sites." }
           ],
           answer: 1
         }
@@ -1142,11 +1142,11 @@
        3. LEVEL CONFIGURATIONS (SCALED FOR A 5-MINUTE RUN)
        ======================================================================== */
     const LEVELS = [
-      { level: 1, name: "LVL 1: PORT SCAN", size: 13 },
-      { level: 2, name: "LVL 2: PACKET FILTER", size: 15 },
-      { level: 3, name: "LVL 3: DEEP INSPECTION", size: 19 },
-      { level: 4, name: "LVL 4: ZERO-DAY PROXY", size: 21 },
-      { level: 5, name: "LVL 5: KERNEL CORE", size: 25 }
+      { level: 1, name: "LVL 1: INTERNET SAFETY", size: 13 },
+      { level: 2, name: "LVL 2: THREAT RADAR", size: 15 },
+      { level: 3, name: "LVL 3: PASSWORD VAULT", size: 19 },
+      { level: 4, name: "LVL 4: CYBER HYGIENE", size: 21 },
+      { level: 5, name: "LVL 5: SMART DEFENSE", size: 25 }
     ];
 
     /* ========================================================================
